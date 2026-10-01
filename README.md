@@ -57,8 +57,9 @@ MIL이나 VisionPro가 없는 PC에서도 설치할 수 있습니다. 해당 스
 ## 설치
 
 ### 1단계. PC 준비 (최초 1회)
-PowerShell에서 실행합니다.
+PowerShell에서 실행합니다. **반드시 사용자 홈 폴더로 이동한 뒤** clone하세요. `C:\Windows\System32`나 `C:\Program Files` 같은 곳에서 실행하면 권한 오류가 납니다.
 ```powershell
+cd $env:USERPROFILE
 git clone https://github.com/hdvisionrnd1/vision-dev-kit.git
 cd vision-dev-kit
 powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1
@@ -279,6 +280,13 @@ claude plugin marketplace remove vision-dev-kit
 ---
 
 ## 문제 해결
+
+**`git clone` 시 `fatal: could not create work tree dir 'vision-dev-kit': Permission denied`**
+- 현재 폴더에 쓰기 권한이 없다는 뜻입니다. `pwd`로 위치를 확인하세요.
+- `C:\Windows\System32`, `C:\Program Files`, `C:\`라면 → `cd $env:USERPROFILE`로 이동한 뒤 다시 clone하세요.
+- 홈 폴더에서도 같은 오류가 나면 Windows 보안의 **제어된 폴더 액세스**(랜섬웨어 방지)가 막고 있는 경우입니다. 다음 둘 중 하나로 해결합니다.
+  - `mkdir C:\dev; cd C:\dev`처럼 보호 대상이 아닌 폴더에서 clone하기
+  - Windows 보안 → 바이러스 및 위협 방지 → 랜섬웨어 방지 → "앱이 제어된 폴더 액세스를 통과하도록 허용"에 `git.exe` 추가하기
 
 **스킬이 안 보이거나 자동으로 불리지 않음**
 - Claude Code를 재시작했는지 확인하세요.
