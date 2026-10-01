@@ -1,0 +1,30 @@
+id: no-ternary
+language: csharp
+severity: error
+message: 삼항연산자(? :) 금지 — 블록 형태 if/else로 작성
+rule:
+  kind: conditional_expression
+---
+id: no-braceless-if
+language: csharp
+severity: error
+message: 중괄호 없는 if 금지 — 블록 { } 형태로 작성
+rule:
+  kind: if_statement
+  has:
+    field: consequence
+    not:
+      kind: block
+---
+id: no-braceless-else
+language: csharp
+severity: error
+message: 중괄호 없는 else 금지 — 블록 { } 형태로 작성 (else if 는 허용)
+rule:
+  kind: if_statement
+  has:
+    field: alternative
+    not:
+      any:
+        - kind: block
+        - kind: if_statement

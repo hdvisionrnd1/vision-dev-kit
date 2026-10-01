@@ -1,0 +1,3 @@
+# 로컬 세션/도구 상태 (공유 금지)
+.omc/
+.claude/settings.local.json

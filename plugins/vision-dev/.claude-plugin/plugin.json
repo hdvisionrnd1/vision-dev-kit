@@ -1,0 +1,10 @@
+{
+  "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
+  "name": "vision-dev",
+  "version": "0.1.0",
+  "description": "C# 머신비전·제어 개발 지원: Matrox MIL / Cognex VisionPro 로컬 문서 조회 스킬, Microsoft Learn·Context7 문서 MCP, C# 삼항연산자·한 줄 if 금지 Hook",
+  "author": {
+    "name": "sehoon"
+  },
+  "keywords": ["csharp", "winforms", "wpf", "machine-vision", "matrox", "mil", "cognex", "visionpro"]
+}
