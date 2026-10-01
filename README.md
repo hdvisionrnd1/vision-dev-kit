@@ -56,9 +56,10 @@ Matrox MIL, Cognex VisionPro 같은 비전 라이브러리는 API가 방대하�
 | Matrox MIL | 선택 | 있어야 `mil-lookup`이 동작 |
 | Cognex VisionPro | 선택 | 있어야 `visionpro-lookup`이 동작 |
 | 7-Zip | VisionPro 사용 시 | help 추출에 필요. `winget install 7zip.7zip` |
-| .NET SDK 6 이상 | 권장 | csharp-lsp(C# 언어 서버)에 필요. `winget install Microsoft.DotNet.SDK.8` |
+| **.NET 10 SDK** | 권장 | csharp-ls·ilspycmd 최신 버전이 .NET 10 전용이라 **.NET 8 이하만 있으면 설치가 실패**합니다. `winget install Microsoft.DotNet.SDK.10` (기존 SDK를 지우지 않고 나란히 설치됨) |
 | csharp-ls | csharp-lsp에 필요 | `setup.ps1`이 자동 설치 (`dotnet tool install --global csharp-ls`) |
 | ilspycmd | 선택 | 문서로 부족할 때 DLL 디컴파일. `setup.ps1`이 자동 설치 |
+| oh-my-claudecode(OMC) | ❌ 함께 쓰면 안 됨 | Superpowers와 충돌. 설치되어 있으면 `setup.ps1`이 끌지 물어봄 ([OMC가 설치된 PC](#omcoh-my-claudecode가-설치된-pc)) |
 
 MIL이나 VisionPro가 없는 PC에서도 설치할 수 있습니다. 해당 스킬만 "문서 없음"을 안내하고, 나머지 기능은 정상 동작합니다.
 
@@ -79,6 +80,10 @@ MIL이나 VisionPro가 없는 PC에서도 설치할 수 있습니다. 해당 스
 3. **Enter**를 누릅니다.
 4. 명령이 끝날 때까지 기다립니다. 맨 아래 줄에 `PS C:\Users\사용자이름>`처럼 입력 대기 표시가 다시 나오면 끝난 것입니다.
 5. 다음 상자로 넘어갑니다.
+
+> 🛑 **빨간 글씨, `FAILED`, `fatal:`, `✘`가 보이면 다음 단계로 넘어가지 마세요.**
+> 오류 메시지의 앞부분을 복사해서 이 페이지 맨 아래 [문제 해결](#문제-해결)에서 **Ctrl + F**로 찾으면 해결 방법이 있습니다.
+> 같은 오류라도 Windows 언어에 따라 영어 또는 한국어로 나오므로, 문제 해결에는 두 가지를 함께 적어 두었습니다.
 
 ---
 
@@ -132,6 +137,16 @@ winget install OpenJS.NodeJS.LTS
 
 Claude Code가 없다면 [Claude Code 홈페이지](https://claude.com/claude-code)의 설치 안내를 따라 먼저 설치하세요.
 
+**.NET SDK 확인 (권장)**: C# 코드 분석 기능(csharp-lsp)에 필요합니다. 결과에 `10.`으로 시작하는 줄이 있으면 됩니다.
+```powershell
+dotnet --list-sdks
+```
+
+`10.`으로 시작하는 줄이 없거나 "인식되지 않습니다"가 나오면 설치하세요. (설치 후 PowerShell 창을 다시 여세요)
+```powershell
+winget install Microsoft.DotNet.SDK.10
+```
+
 ---
 
 ### 2단계. 내려받기 및 준비 (최초 1회)
@@ -156,11 +171,17 @@ cd vision-dev-kit
 powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1
 ```
 
-`setup.ps1`이 하는 일:
+`setup.ps1`이 하는 일 (화면에 `[1/6]` ~ `[6/6]`으로 표시됩니다):
 1. Node.js 설치 여부 확인
 2. ast-grep 설치 (이미 있으면 건너뜀)
-3. ilspycmd 설치 (.NET SDK가 있을 때만, `-SkipIlspy`로 생략 가능)
-4. VisionPro가 설치되어 있으면 help를 HTML로 추출 (`-SkipCognexHelp`로 생략 가능)
+3. csharp-ls 설치 (.NET 10 SDK가 있을 때만)
+4. ilspycmd 설치 (.NET 10 SDK가 있을 때만, `-SkipIlspy`로 생략 가능)
+5. VisionPro가 설치되어 있으면 help를 HTML로 추출 (`-SkipCognexHelp`로 생략 가능)
+6. **oh-my-claudecode(OMC)가 켜져 있는지 확인.** 켜져 있으면 `Disable OMC now? (Y/N)`라고 묻습니다. **`Y`를 입력하고 Enter**를 누르면 OMC를 끄고 CLAUDE.md의 OMC 지침을 백업한 뒤 정리합니다. ([자세히](#omcoh-my-claudecode가-설치된-pc))
+
+끝났을 때 화면 맨 아래를 확인하세요.
+- 초록색 `Setup finished.` → 모두 정상입니다. 3단계로 넘어가세요.
+- 노란색 `Setup finished, but these steps need attention:` → 아래에 나온 항목을 [문제 해결](#2단계-내려받기준비)에서 찾아 처리하세요. 플러그인 설치(3단계)는 먼저 진행해도 됩니다.
 
 > VisionPro가 설치된 PC는 help 추출 때문에 수 분 더 걸립니다. 화면이 멈춘 것처럼 보여도 기다리세요. 추출 위치는 `%USERPROFILE%\.claude\tools\cognex-doc\VisionPro\html`입니다.
 
@@ -376,7 +397,7 @@ Superpowers는 원래 "TDD 예외는 매번 사용자에게 허락받으라"고 
 
 두 플러그인은 vision-dev의 **의존성**으로 연결되어 있습니다. 원본 플러그인을 그대로 설치하는 것이라 업데이트도 각 원본에서 받습니다.
 
-> ⚠️ Superpowers는 "어떻게 작업할지"를 정하는 플러그인입니다. **oh-my-claudecode 같은 다른 작업 절차 플러그인과 함께 켜면 지침이 충돌**합니다. 쓰고 있었다면 꺼 주세요. (`claude plugin disable <플러그인이름>`)
+> ⚠️ Superpowers는 "어떻게 작업할지"를 정하는 플러그인입니다. **oh-my-claudecode 같은 다른 작업 절차 플러그인과 함께 켜면 지침이 충돌**합니다. 쓰고 있었다면 [OMC가 설치된 PC](#omcoh-my-claudecode가-설치된-pc)를 따라 꺼 주세요.
 
 ---
 
@@ -499,12 +520,139 @@ claude plugin marketplace remove vision-dev-kit
 
 ## 문제 해결
 
-**`git clone` 시 `fatal: could not create work tree dir 'vision-dev-kit': Permission denied`**
+> 오류 메시지의 앞부분을 복사해서 **Ctrl + F**로 이 섹션에서 찾으세요.
+> 같은 오류라도 Windows 언어에 따라 영어 또는 한국어로 나옵니다.
+
+### 1단계 (필수 프로그램)
+
+**`The term 'git' is not recognized ...` / `'git' 용어가 cmdlet, 함수, 스크립트 파일 또는 실행할 수 있는 프로그램 이름으로 인식되지 않습니다`**
+(`git` 대신 `node`, `npm`, `claude`, `dotnet`이 나와도 같은 경우입니다.)
+- 그 프로그램이 설치되지 않았거나, 방금 설치해서 아직 PowerShell 창에 반영되지 않은 상태입니다.
+- 아래 표의 명령으로 설치한 뒤 **PowerShell 창을 닫고 다시 여세요.**
+
+| 인식되지 않는 명령 | 설치 방법 |
+|---|---|
+| `git` | `winget install Git.Git` |
+| `node`, `npm` | `winget install OpenJS.NodeJS.LTS` |
+| `dotnet` | `winget install Microsoft.DotNet.SDK.10` |
+| `claude` | [Claude Code 홈페이지](https://claude.com/claude-code)의 설치 안내 |
+
+**`winget` 자체가 인식되지 않음**
+- Microsoft Store에서 **"앱 설치 관리자"(App Installer)**를 설치하거나 업데이트하세요.
+- 또는 각 홈페이지에서 설치 파일을 받으세요: [Git](https://git-scm.com/download/win), [Node.js](https://nodejs.org/), [.NET SDK](https://dotnet.microsoft.com/download)
+
+### 2단계 (내려받기·준비)
+
+**`fatal: could not create work tree dir 'vision-dev-kit': Permission denied`**
 - 현재 폴더에 쓰기 권한이 없다는 뜻입니다. `pwd`로 위치를 확인하세요.
 - `C:\Windows\System32`, `C:\Program Files`, `C:\`라면 → `cd $env:USERPROFILE`로 이동한 뒤 다시 clone하세요.
 - 홈 폴더에서도 같은 오류가 나면 Windows 보안의 **제어된 폴더 액세스**(랜섬웨어 방지)가 막고 있는 경우입니다. 다음 둘 중 하나로 해결합니다.
   - `mkdir C:\dev; cd C:\dev`처럼 보호 대상이 아닌 폴더에서 clone하기
   - Windows 보안 → 바이러스 및 위협 방지 → 랜섬웨어 방지 → "앱이 제어된 폴더 액세스를 통과하도록 허용"에 `git.exe` 추가하기
+
+**`fatal: destination path 'vision-dev-kit' already exists and is not an empty directory.`**
+- 이미 내려받은 적이 있다는 뜻입니다. 오류가 아니니 그 폴더로 이동해서 최신 내용으로 갱신한 뒤 ④부터 진행하세요.
+```powershell
+cd vision-dev-kit
+```
+```powershell
+git pull
+```
+
+**`fatal: unable to access 'https://github.com/...': Could not resolve host`** 또는 **`Failed to connect`**
+- 인터넷에 연결되지 않았거나 회사 방화벽·프록시가 GitHub을 막고 있습니다.
+- 브라우저로 https://github.com 이 열리는지 확인하세요. 회사 네트워크라면 IT 담당자에게 `github.com` 접속 허용을 요청하세요.
+
+**`The argument '.\scripts\setup.ps1' to the -File parameter does not exist`** / **`-File 매개 변수에 대한 인수 '.\scripts\setup.ps1'이(가) 없습니다`**
+- `vision-dev-kit` 폴더 안에서 실행하지 않았다는 뜻입니다. 아래로 이동한 뒤 다시 실행하세요.
+```powershell
+cd $env:USERPROFILE\vision-dev-kit
+```
+
+**`cannot be loaded because running scripts is disabled on this system`** / **`이 시스템에서 스크립트를 실행할 수 없으므로 ... 파일을 로드할 수 없습니다`**
+- 실행 정책 때문에 막힌 것입니다. 명령에 `-ExecutionPolicy Bypass`가 빠지지 않았는지 확인하고 README의 명령을 그대로 복사해서 실행하세요.
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1
+```
+
+**setup 화면: `FAILED: Node.js is not installed.`**
+- `winget install OpenJS.NodeJS.LTS`로 설치하고, PowerShell 창을 다시 연 뒤 setup을 다시 실행하세요.
+
+**setup 화면: `skipped: .NET SDK 8 found, but csharp-ls needs .NET 10 SDK.`** 또는 **`skipped: .NET SDK not found.`**
+- csharp-ls와 ilspycmd는 **.NET 10 SDK**가 있어야 설치됩니다. 기존 SDK를 지우지 않고 나란히 설치됩니다.
+```powershell
+winget install Microsoft.DotNet.SDK.10
+```
+- 설치 후 PowerShell 창을 다시 열고 setup을 다시 실행하세요.
+- 이 단계가 건너뛰어져도 플러그인의 나머지 기능은 동작합니다. C# 코드 분석(csharp-lsp)만 동작하지 않습니다.
+
+**`도구의 NuGet 패키지에 있는 설정 파일이 잘못되었습니다 ... 'DotnetToolSettings.xml'을 찾지 못했습니다`** / **`'csharp-ls' 도구를 설치하지 못했습니다`**
+- `dotnet tool install`을 직접 실행했는데 .NET 10 SDK가 없을 때 나오는 메시지입니다. 위 항목처럼 .NET 10 SDK를 설치하세요.
+
+**setup 화면: `FAILED: npm i -g @ast-grep/cli`** 또는 **`FAILED: dotnet tool install --global ...`**
+- 인터넷 또는 회사 프록시 문제입니다. `registry.npmjs.org`(npm), `api.nuget.org`(dotnet) 접속이 막혀 있지 않은지 확인한 뒤 setup을 다시 실행하세요.
+
+**setup 화면: `7-Zip not found. Install it first: winget install 7zip.7zip`**
+- VisionPro help를 추출하려면 7-Zip이 필요합니다. 아래를 한 줄씩 실행하세요.
+```powershell
+winget install 7zip.7zip
+```
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\extract-cognex-help.ps1
+```
+
+**setup 화면: `VisionPro help not found: ...VisionPro.Documentation.chm`**
+- VisionPro가 기본 위치가 아닌 곳에 설치된 경우입니다. 탐색기에서 `VisionPro.Documentation.chm` 파일을 찾아 경로를 지정하세요.
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\extract-cognex-help.ps1 -ChmPath "D:\Cognex\VisionPro\Doc\en\VisionPro.Documentation.chm"
+```
+- 영어가 아닌 help를 추출하려면 `-Lang ja` 또는 `-Lang zh-Hans`를 붙이세요.
+
+**setup 화면: `oh-my-claudecode (OMC) found`**
+- [OMC가 설치된 PC](#omcoh-my-claudecode가-설치된-pc)를 보세요. `Disable OMC now? (Y/N)`에 `Y`를 입력하면 자동으로 처리됩니다.
+
+**setup 화면 마지막: `Setup finished, but these steps need attention:`** (노란 글씨)
+- 바로 아래 목록에 처리할 항목이 나옵니다. 위 항목들에서 같은 내용을 찾아 해결하고, setup을 다시 실행하면 됩니다.
+- 플러그인 설치(3단계)는 먼저 진행해도 괜찮습니다.
+
+### 3단계 (플러그인 설치)
+
+**`Failed to clone marketplace repository: SSH authentication failed`** / **`Permission denied (publickey)`**
+- 대부분 **저장소 이름 오타**입니다. `hdvisionrnd1/vision-dev-kit`, `anthropics/claude-plugins-official` 철자를 확인하세요. README의 복사 버튼으로 복사하면 정확합니다.
+- 철자가 맞는데도 같은 오류가 나면 HTTPS 주소로 등록하세요.
+```powershell
+claude plugin marketplace add https://github.com/hdvisionrnd1/vision-dev-kit.git
+```
+```powershell
+claude plugin marketplace add https://github.com/anthropics/claude-plugins-official.git
+```
+
+**`Cannot add marketplace "vision-dev-kit": its network source differs from the one declared for it in settings`**
+- 예전에 다른 주소(로컬 폴더나 다른 URL)로 등록한 적이 있다는 뜻입니다. 등록을 해제하고 다시 등록한 뒤 **다시 설치**하세요. (등록을 해제하면 vision-dev도 함께 제거되기 때문입니다)
+```powershell
+claude plugin marketplace remove vision-dev-kit
+```
+```powershell
+claude plugin marketplace add hdvisionrnd1/vision-dev-kit
+```
+```powershell
+claude plugin install vision-dev@vision-dev-kit
+```
+
+**`Plugin "vision-dev" not found in marketplace "vision-dev-kit"`**
+- 3단계 ②(vision-dev 마켓플레이스 등록)를 건너뛰었거나, 목록이 오래된 경우입니다.
+- ②를 안 했다면 ②부터 다시 진행하세요. 이미 했다면 목록을 갱신한 뒤 다시 설치하세요.
+```powershell
+claude plugin marketplace update vision-dev-kit
+```
+```powershell
+claude plugin install vision-dev@vision-dev-kit
+```
+
+**`is already installed`**, **`already on disk`**, **`already at the latest version`**
+- 오류가 아닙니다. 이미 설치·등록되어 있거나 최신 상태라는 뜻이니 다음 단계로 넘어가세요.
+
+### 4단계 (설치 확인)
 
 **`claude plugin list`에서 vision-dev가 `✘ failed to load` (`Dependency "superpowers@claude-plugins-official" is not installed`)**
 - 공식 마켓플레이스가 등록되지 않은 상태로 설치한 경우입니다. 아래를 한 줄씩 실행한 뒤 Claude Code를 재시작하세요.
@@ -518,42 +666,97 @@ claude plugin uninstall vision-dev@vision-dev-kit
 claude plugin install vision-dev@vision-dev-kit
 ```
 
+**`claude mcp list`에서 MCP가 `✘ Failed to connect`**
+- 회사 방화벽이나 프록시가 `learn.microsoft.com`, `mcp.context7.com`을 막고 있지 않은지 확인하세요.
+- MCP가 연결되지 않아도 나머지 기능은 동작합니다.
+
+### 사용 중
+
+**세션 시작 때 `[vision-dev] oh-my-claudecode(OMC)가 켜져 있어 Superpowers와 작업 지침이 충돌합니다`**
+- OMC가 아직 켜져 있습니다. [OMC가 설치된 PC](#omcoh-my-claudecode가-설치된-pc)를 따라 끄세요.
+
+**`[vision-dev] ast-grep이 없어 C# 스타일 검사를 건너뜁니다`**
+- ast-grep이 설치되지 않았습니다. 설치한 뒤 Claude Code를 다시 시작하세요.
+```powershell
+npm i -g @ast-grep/cli
+```
+
+**스타일 검사가 동작하지 않음 (메시지도 없음)**
+- `ast-grep --version`이 실행되는지 확인하세요.
+- `VISION_DEV_STYLE_HOOK`이 `off`로 설정되어 있지 않은지 확인하세요.
+- Hook 목록은 Claude Code의 `/hooks` 메뉴에서 볼 수 있습니다.
+
 **C# 코드 분석(csharp-lsp)이 동작하지 않음**
-- `csharp-ls --version`이 실행되는지 확인하세요. 없으면 .NET SDK를 설치한 뒤 `dotnet tool install --global csharp-ls`를 실행하세요.
+- `csharp-ls --version`이 실행되는지 확인하세요. 안 되면 [.NET 10 SDK 항목](#2단계-내려받기준비)을 따라 설치하세요.
 - 설치한 뒤에는 PowerShell과 Claude Code를 모두 다시 여세요.
 
 **TDD 관련 동작이 이상함 (UI 코드에도 테스트를 쓰려고 하거나, 매번 허락을 물어봄)**
 - `VISION_DEV_TEAM_RULES`가 `off`로 설정되어 있지 않은지 확인하세요.
-- oh-my-claudecode 같은 다른 작업 절차 플러그인이 켜져 있으면 끄세요 (`claude plugin list`로 확인).
+- OMC 같은 다른 작업 절차 플러그인이 켜져 있으면 끄세요 (`claude plugin list`로 확인).
 
 **스킬이 안 보이거나 자동으로 불리지 않음**
 - Claude Code를 재시작했는지 확인하세요.
 - `claude plugin details vision-dev@vision-dev-kit`로 설치 상태를 확인하세요.
 - `/vision-dev:mil-lookup`처럼 직접 불러서 써 보세요.
 
-**스타일 검사가 동작하지 않음**
-- "ast-grep이 없어 C# 스타일 검사를 건너뜁니다" 메시지가 떴다면 → `npm i -g @ast-grep/cli`
-- `ast-grep --version`이 실행되는지 확인하세요.
-- `VISION_DEV_STYLE_HOOK`이 `off`로 설정되어 있지 않은지 확인하세요.
-- Hook 목록은 Claude Code의 `/hooks` 메뉴에서 볼 수 있습니다.
+**`VisionPro help(HTML)가 없습니다`**
+- `scripts\extract-cognex-help.ps1`을 실행하세요 (7-Zip 필요). 다른 위치에 추출했다면 `COGNEX_HELP_DIR`을 지정하세요.
 
-**"VisionPro help(HTML)가 없습니다"**
-- `scripts\extract-cognex-help.ps1`을 실행하세요 (7-Zip 필요).
-- 영어가 아닌 help를 추출하려면 `-Lang ja` 또는 `-Lang zh-Hans`를 지정하세요.
-- 다른 위치에 추출했다면 `COGNEX_HELP_DIR`을 지정하세요.
-
-**"MIL 레퍼런스 폴더가 없습니다"**
+**`MIL 레퍼런스 폴더가 없습니다`**
 - MIL이 설치되어 있지 않거나 다른 위치에 설치된 경우입니다. 다른 위치라면 `MIL_DOC_DIR`을 지정하세요.
 
-**첫 VisionPro 검색이 오래 걸림**
+**`[cogdoc] 제목 색인 최초 생성 중`** (첫 VisionPro 검색이 오래 걸림)
 - 정상입니다. 제목 색인을 처음 만드는 중입니다 (수 분). 두 번째부터는 즉시 검색됩니다.
 
-**MCP가 연결되지 않음**
-- `claude mcp list`로 상태를 확인하세요.
-- 회사 방화벽이나 프록시가 `learn.microsoft.com`, `mcp.context7.com`을 막고 있지 않은지 확인하세요.
+### OMC(oh-my-claudecode)가 설치된 PC
 
-**`setup.ps1` 실행이 막힘 (실행 정책 오류)**
-- `powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1`처럼 `-ExecutionPolicy Bypass`를 붙여 실행하세요.
+oh-my-claudecode(OMC)와 Superpowers는 둘 다 "Claude가 어떻게 작업할지"를 지시하는 도구라서, 함께 켜면 지침이 충돌합니다.
+OMC는 플러그인 외에 `%USERPROFILE%\.claude\CLAUDE.md`에도 자기 지침 블록을 써 넣기 때문에, **플러그인만 끄면 지침이 남습니다.** 두 가지를 모두 처리해야 합니다.
+
+**방법 1. 자동 (권장)**
+setup을 실행하고 `[6/6]` 단계에서 `Disable OMC now? (Y/N)`가 나오면 `Y`를 입력합니다. 이미 setup을 실행했어도 다시 실행하면 됩니다.
+```powershell
+cd $env:USERPROFILE\vision-dev-kit
+```
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1
+```
+- OMC 플러그인을 **끄기만** 합니다(삭제하지 않음).
+- CLAUDE.md는 `CLAUDE.md.bak-before-vision-dev-날짜시간`으로 백업한 뒤 OMC 블록만 지웁니다. 직접 적어 둔 내용은 그대로 남습니다.
+
+**방법 2. 수동**
+
+① OMC 플러그인 이름을 확인합니다. 보통 `oh-my-claudecode@omc`입니다.
+```powershell
+claude plugin list
+```
+
+② OMC를 끕니다. (①에서 확인한 이름이 다르면 그 이름으로 바꾸세요)
+```powershell
+claude plugin disable oh-my-claudecode@omc
+```
+
+③ CLAUDE.md를 백업합니다.
+```powershell
+Copy-Item $env:USERPROFILE\.claude\CLAUDE.md $env:USERPROFILE\.claude\CLAUDE.md.bak
+```
+
+④ 메모장으로 CLAUDE.md를 엽니다.
+```powershell
+notepad $env:USERPROFILE\.claude\CLAUDE.md
+```
+
+⑤ `<!-- OMC:START -->` 줄부터 `<!-- OMC:END -->` 줄까지 지우고 저장합니다. 그 아래에 직접 적어 둔 내용은 지우지 마세요.
+
+⑥ Claude Code를 다시 시작합니다. 세션 시작 때 `[vision-dev] oh-my-claudecode(OMC)가 켜져 있어...` 경고가 더 이상 나오지 않으면 완료입니다.
+
+**OMC로 되돌리고 싶을 때**
+```powershell
+claude plugin enable oh-my-claudecode@omc
+```
+그다음 CLAUDE.md를 백업 파일로 되돌리세요. 이 상태에서는 Superpowers와 다시 충돌하므로, OMC를 계속 쓸 거라면 vision-dev를 제거하는 것이 좋습니다([제거](#제거) 참고).
+
+> 참고: OMC를 꺼도 화면 아래 상태 표시줄(HUD)은 남아 있을 수 있습니다. 표시만 하는 기능이라 그대로 두어도 문제없습니다.
 
 ---
 

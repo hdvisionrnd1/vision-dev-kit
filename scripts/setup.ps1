@@ -2,74 +2,200 @@
 .SYNOPSIS
   One-time setup for the vision-dev Claude Code plugin on this PC.
   - ast-grep CLI (required by the C# style hook)
-  - csharp-ls (required by the csharp-lsp plugin, needs .NET SDK 6+)
-  - ilspycmd (optional, decompile MIL/Cognex DLLs when docs are not enough)
+  - csharp-ls (required by the csharp-lsp plugin, needs .NET 10 SDK)
+  - ilspycmd (optional, decompile MIL/Cognex DLLs, needs .NET 10 SDK)
   - Cognex VisionPro help extraction (only if VisionPro is installed)
 #>
 param(
     [switch]$SkipIlspy,
-    [switch]$SkipCognexHelp
+    [switch]$SkipCognexHelp,
+    # Disable oh-my-claudecode without asking (it conflicts with Superpowers)
+    [switch]$DisableConflicts
 )
 
 $ErrorActionPreference = "Stop"
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
+$todo = New-Object System.Collections.Generic.List[string]
 
 function Test-Cmd($name) {
     return $null -ne (Get-Command $name -ErrorAction SilentlyContinue)
 }
 
-function Test-DotnetSdk {
+# Highest installed .NET SDK major version (0 = none)
+function Get-DotnetSdkMajor {
     if (-not (Test-Cmd dotnet)) {
-        return $false
+        return 0
     }
-    $sdks = & dotnet --list-sdks 2>$null
-    return ($null -ne $sdks) -and ($sdks.Count -gt 0)
+    $max = 0
+    $lines = & dotnet --list-sdks 2>$null
+    foreach ($line in $lines) {
+        if ($line -match '^(\d+)\.') {
+            $major = [int]$Matches[1]
+            if ($major -gt $max) {
+                $max = $major
+            }
+        }
+    }
+    return $max
 }
 
-Write-Host "[1/5] Node.js"
+function Install-DotnetTool($toolName, $label) {
+    if (Test-Cmd $toolName) {
+        Write-Host "      ok: already installed"
+        return
+    }
+    if ($script:sdkMajor -lt 10) {
+        if ($script:sdkMajor -eq 0) {
+            Write-Host "      skipped: .NET SDK not found."
+        }
+        else {
+            Write-Host "      skipped: .NET SDK $($script:sdkMajor) found, but $toolName needs .NET 10 SDK."
+        }
+        Write-Host "      fix: winget install Microsoft.DotNet.SDK.10   (then reopen PowerShell and run setup.ps1 again)"
+        $script:todo.Add("$label : install .NET 10 SDK (winget install Microsoft.DotNet.SDK.10), reopen PowerShell, run setup.ps1 again")
+        return
+    }
+    & dotnet tool install --global $toolName
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "      FAILED: dotnet tool install --global $toolName (exit $LASTEXITCODE)"
+        Write-Host "      check internet/proxy access to api.nuget.org, then run setup.ps1 again"
+        $script:todo.Add("$label : 'dotnet tool install --global $toolName' failed (check network, run setup.ps1 again)")
+    }
+    else {
+        Write-Host "      installed. Reopen PowerShell before using it."
+    }
+}
+
+# oh-my-claudecode (OMC) conflicts with Superpowers: both tell Claude how to work.
+# OMC also writes its own block into ~/.claude/CLAUDE.md, which stays even after the plugin is disabled.
+function Resolve-OmcConflict {
+    $cfg = $env:CLAUDE_CONFIG_DIR
+    if ([string]::IsNullOrEmpty($cfg)) {
+        $cfg = Join-Path $env:USERPROFILE ".claude"
+    }
+    $settingsPath = Join-Path $cfg "settings.json"
+    $claudeMdPath = Join-Path $cfg "CLAUDE.md"
+
+    $enabledIds = @()
+    if (Test-Path $settingsPath) {
+        try {
+            $settings = Get-Content $settingsPath -Raw | ConvertFrom-Json
+            if ($null -ne $settings.enabledPlugins) {
+                foreach ($prop in $settings.enabledPlugins.PSObject.Properties) {
+                    if (($prop.Name -like "oh-my-claudecode@*") -and ($prop.Value -eq $true)) {
+                        $enabledIds += $prop.Name
+                    }
+                }
+            }
+        }
+        catch {
+            Write-Host "      could not read $settingsPath ($($_.Exception.Message))"
+        }
+    }
+
+    $hasBlock = $false
+    $claudeMd = ""
+    if (Test-Path $claudeMdPath) {
+        $claudeMd = [System.IO.File]::ReadAllText($claudeMdPath)
+        if ($claudeMd -match '(?s)<!-- OMC:START -->.*?<!-- OMC:END -->') {
+            $hasBlock = $true
+        }
+    }
+
+    if (($enabledIds.Count -eq 0) -and (-not $hasBlock)) {
+        Write-Host "      ok: oh-my-claudecode is not active"
+        return
+    }
+
+    Write-Host "      oh-my-claudecode (OMC) found:" -ForegroundColor Yellow
+    foreach ($id in $enabledIds) {
+        Write-Host "        - plugin enabled: $id"
+    }
+    if ($hasBlock) {
+        Write-Host "        - OMC instructions block in $claudeMdPath"
+    }
+    Write-Host "      OMC conflicts with Superpowers (installed with vision-dev). Disabling it is recommended."
+    Write-Host "      This will: disable the OMC plugin (not uninstall) and move the OMC block out of CLAUDE.md (backup kept)."
+
+    $answer = "Y"
+    if (-not $DisableConflicts) {
+        $answer = Read-Host "      Disable OMC now? (Y/N)"
+    }
+    if ($answer -notmatch '^[Yy]') {
+        Write-Host "      left as is."
+        $script:todo.Add("OMC : still active and will conflict with Superpowers. Run setup.ps1 again and answer Y, or see the README (search for: OMC)")
+        return
+    }
+
+    foreach ($id in $enabledIds) {
+        if (Test-Cmd claude) {
+            & claude plugin disable $id
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host "      FAILED: claude plugin disable $id"
+                $script:todo.Add("OMC : run 'claude plugin disable $id' manually")
+            }
+        }
+        else {
+            $script:todo.Add("OMC : 'claude' command not found. Install Claude Code, then run 'claude plugin disable $id'")
+        }
+    }
+
+    if ($hasBlock) {
+        $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
+        $backup = "$claudeMdPath.bak-before-vision-dev-$stamp"
+        Copy-Item $claudeMdPath $backup
+        $cleaned = [regex]::Replace($claudeMd, '(?s)<!-- OMC:START -->.*?<!-- OMC:END -->\r?\n?', '')
+        [System.IO.File]::WriteAllText($claudeMdPath, $cleaned, (New-Object System.Text.UTF8Encoding $false))
+        Write-Host "      removed OMC block from CLAUDE.md (backup: $backup)"
+    }
+
+    Write-Host "      done. To undo later:" -ForegroundColor Green
+    foreach ($id in $enabledIds) {
+        Write-Host "        claude plugin enable $id"
+    }
+    if ($hasBlock) {
+        Write-Host "        and restore CLAUDE.md from the backup above"
+    }
+}
+
+Write-Host "[1/6] Node.js"
 if (-not (Test-Cmd node)) {
-    Write-Error "Node.js is required (hooks and skill scripts run on node). Install: winget install OpenJS.NodeJS.LTS"
+    Write-Host "      FAILED: Node.js is not installed."
+    Write-Host "      fix: winget install OpenJS.NodeJS.LTS   (then reopen PowerShell and run setup.ps1 again)"
     exit 1
 }
 Write-Host "      ok: $(node --version)"
 
-Write-Host "[2/5] ast-grep (C# style hook)"
+Write-Host "[2/6] ast-grep (C# style hook)"
 if (Test-Cmd ast-grep) {
     Write-Host "      ok: already installed"
 }
 else {
-    npm i -g @ast-grep/cli
+    & npm i -g @ast-grep/cli
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "      FAILED: npm i -g @ast-grep/cli (exit $LASTEXITCODE)"
+        Write-Host "      check internet/proxy access to registry.npmjs.org, then run setup.ps1 again"
+        $todo.Add("ast-grep : 'npm i -g @ast-grep/cli' failed (check network, run setup.ps1 again)")
+    }
+    else {
+        Write-Host "      installed."
+    }
 }
 
-$hasSdk = Test-DotnetSdk
+$sdkMajor = Get-DotnetSdkMajor
 
-Write-Host "[3/5] csharp-ls (C# code intelligence for the csharp-lsp plugin)"
-if (Test-Cmd csharp-ls) {
-    Write-Host "      ok: already installed"
-}
-elseif ($hasSdk) {
-    dotnet tool install --global csharp-ls
-}
-else {
-    Write-Host "      skipped: .NET SDK not found. Install it, then run: dotnet tool install --global csharp-ls"
-    Write-Host "               (winget install Microsoft.DotNet.SDK.8)"
-}
+Write-Host "[3/6] csharp-ls (C# code intelligence for the csharp-lsp plugin)"
+Install-DotnetTool "csharp-ls" "csharp-ls"
 
-Write-Host "[4/5] ilspycmd (optional)"
+Write-Host "[4/6] ilspycmd (optional)"
 if ($SkipIlspy) {
     Write-Host "      skipped"
 }
-elseif (Test-Cmd ilspycmd) {
-    Write-Host "      ok: already installed"
-}
-elseif ($hasSdk) {
-    dotnet tool install --global ilspycmd
-}
 else {
-    Write-Host "      skipped: .NET SDK not found"
+    Install-DotnetTool "ilspycmd" "ilspycmd (optional)"
 }
 
-Write-Host "[5/5] Cognex VisionPro help"
+Write-Host "[5/6] Cognex VisionPro help"
 $helpDir = Join-Path $env:USERPROFILE ".claude\tools\cognex-doc\VisionPro\html"
 $vpro = Join-Path $env:ProgramFiles "Cognex\VisionPro"
 if ($SkipCognexHelp) {
@@ -79,14 +205,34 @@ elseif (Test-Path $helpDir) {
     Write-Host "      ok: $helpDir"
 }
 elseif (Test-Path $vpro) {
-    & (Join-Path $here "extract-cognex-help.ps1")
+    try {
+        & (Join-Path $here "extract-cognex-help.ps1")
+    }
+    catch {
+        Write-Host "      FAILED: $($_.Exception.Message)"
+        $todo.Add("Cognex help : fix the error above, then run: powershell -ExecutionPolicy Bypass -File .\scripts\extract-cognex-help.ps1")
+    }
 }
 else {
     Write-Host "      skipped: VisionPro is not installed on this PC"
 }
 
+Write-Host "[6/6] Conflicting plugins (oh-my-claudecode)"
+Resolve-OmcConflict
+
 Write-Host ""
-Write-Host "Setup finished. Next, run these three commands ONE LINE AT A TIME:"
+if ($todo.Count -gt 0) {
+    Write-Host "Setup finished, but these steps need attention:" -ForegroundColor Yellow
+    foreach ($item in $todo) {
+        Write-Host "  - $item" -ForegroundColor Yellow
+    }
+    Write-Host "(You can continue with the plugin install below and fix these later.)"
+    Write-Host ""
+}
+else {
+    Write-Host "Setup finished." -ForegroundColor Green
+}
+Write-Host "Next, run these three commands ONE LINE AT A TIME:"
 Write-Host "  claude plugin marketplace add anthropics/claude-plugins-official"
 Write-Host "  claude plugin marketplace add hdvisionrnd1/vision-dev-kit"
 Write-Host "  claude plugin install vision-dev@vision-dev-kit"

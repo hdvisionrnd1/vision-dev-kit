@@ -12,7 +12,7 @@
       "name": "vision-dev",
       "source": "./plugins/vision-dev",
       "description": "MIL/VisionPro 문서 조회 스킬, .NET 문서 MCP, C# 스타일 Hook, 팀 규칙 + Superpowers·csharp-lsp 자동 설치",
-      "version": "0.2.0"
+      "version": "0.2.1"
     }
   ]
 }
