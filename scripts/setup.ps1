@@ -63,6 +63,6 @@ else {
 }
 
 Write-Host ""
-Write-Host "Setup finished. Now, inside Claude Code run:"
-Write-Host "  /plugin marketplace add hdvisionrnd1/vision-dev-kit"
-Write-Host "  /plugin install vision-dev@vision-dev-kit"
+Write-Host "Setup finished. Next, run these two commands ONE LINE AT A TIME:"
+Write-Host "  claude plugin marketplace add hdvisionrnd1/vision-dev-kit"
+Write-Host "  claude plugin install vision-dev@vision-dev-kit"

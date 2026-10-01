@@ -43,6 +43,7 @@ Matrox MIL, Cognex VisionPro 같은 비전 라이브러리는 API가 방대하�
 |---|---|---|
 | Windows 10/11 | 필수 | 경로와 설치 스크립트가 Windows 기준 |
 | [Claude Code](https://claude.com/claude-code) | 필수 | |
+| Git | 필수 | 저장소를 내려받을 때 필요. `winget install Git.Git` |
 | Node.js (LTS) | 필수 | 스킬 스크립트와 Hook이 Node로 실행됨. `winget install OpenJS.NodeJS.LTS` |
 | ast-grep | Hook에 필요 | `setup.ps1`이 자동 설치 (`npm i -g @ast-grep/cli`) |
 | Matrox MIL | 선택 | 있어야 `mil-lookup`이 동작 |
@@ -56,12 +57,93 @@ MIL이나 VisionPro가 없는 PC에서도 설치할 수 있습니다. 해당 스
 
 ## 설치
 
-### 1단계. PC 준비 (최초 1회)
-PowerShell에서 실행합니다. **반드시 사용자 홈 폴더로 이동한 뒤** clone하세요. `C:\Windows\System32`나 `C:\Program Files` 같은 곳에서 실행하면 권한 오류가 납니다.
+처음 해 보는 분도 따라 할 수 있도록 순서대로 적었습니다. 위에서부터 차례대로 진행하세요.
+
+### 시작하기 전에: 명령어 입력하는 방법
+
+> ⚠️ **명령어는 반드시 한 줄씩 복사해서 붙여넣고 실행하세요.**
+> 여러 줄을 한 번에 붙여넣으면 앞 명령이 끝나기 전에 다음 명령이 실행되어 설치가 꼬일 수 있습니다.
+
+한 줄을 실행하는 순서:
+1. 아래 회색 상자 오른쪽 위의 **복사 버튼**(📋)을 누릅니다. 상자 하나에 명령이 한 줄씩만 들어 있습니다.
+2. PowerShell 창에서 **Ctrl + V**를 눌러 붙여넣습니다. (마우스 오른쪽 버튼을 눌러도 됩니다. 메뉴가 뜨면 **붙여넣기**를 고르세요.)
+3. **Enter**를 누릅니다.
+4. 명령이 끝날 때까지 기다립니다. 맨 아래 줄에 `PS C:\Users\사용자이름>`처럼 입력 대기 표시가 다시 나오면 끝난 것입니다.
+5. 다음 상자로 넘어갑니다.
+
+---
+
+### 0단계. PowerShell 열기
+
+1. 키보드의 **Windows 키**를 누르거나 화면 왼쪽 아래(Windows 11은 가운데)의 **시작 버튼**을 클릭합니다.
+2. `powershell`이라고 입력합니다.
+3. 검색 결과에서 **Windows PowerShell**을 **그냥 클릭**해서 엽니다.
+   - ❌ "관리자 권한으로 실행"은 누르지 마세요. 관리자 창에서 실행하면 파일이 엉뚱한 곳(`C:\Windows\System32`)에 만들어지거나 권한 오류가 납니다.
+4. 파란색(또는 검은색) 창이 열리고 `PS C:\Users\사용자이름>`이 보이면 준비된 것입니다.
+
+> Windows 11에서는 시작 버튼을 마우스 오른쪽 클릭 → **터미널**을 눌러도 PowerShell 창이 열립니다. 이때도 "터미널(관리자)"가 아닌 그냥 **터미널**을 고르세요.
+
+---
+
+### 1단계. 필수 프로그램 확인
+
+아래 명령을 하나씩 실행해서 버전 번호가 나오는지 확인합니다.
+
+Git 확인:
+```powershell
+git --version
+```
+
+Node.js 확인:
+```powershell
+node --version
+```
+
+Claude Code 확인:
+```powershell
+claude --version
+```
+
+`git version 2.47.1`, `v22.11.0`처럼 버전 번호가 나오면 설치된 것입니다. (숫자는 PC마다 다릅니다)
+**빨간 글씨로 "인식되지 않습니다"가 나오면** 그 프로그램이 없는 것이니, 해당 줄을 실행해서 설치하세요.
+
+Git 설치 (없을 때만):
+```powershell
+winget install Git.Git
+```
+
+Node.js 설치 (없을 때만):
+```powershell
+winget install OpenJS.NodeJS.LTS
+```
+
+> 설치 중 약관에 동의하는지 묻는 메시지(`[Y] Yes [N] No`)가 나오면 `Y`를 입력하고 Enter를 누르세요.
+>
+> **새로 설치했다면 PowerShell 창을 닫고 0단계부터 다시 여세요.** 창을 다시 열어야 방금 설치한 프로그램이 인식됩니다.
+
+Claude Code가 없다면 [Claude Code 홈페이지](https://claude.com/claude-code)의 설치 안내를 따라 먼저 설치하세요.
+
+---
+
+### 2단계. 내려받기 및 준비 (최초 1회)
+
+**① 사용자 홈 폴더로 이동합니다.** 이 줄을 빼먹으면 권한 오류(`Permission denied`)가 날 수 있습니다.
 ```powershell
 cd $env:USERPROFILE
+```
+
+**② 저장소를 내려받습니다.** `vision-dev-kit` 폴더가 만들어집니다.
+```powershell
 git clone https://github.com/hdvisionrnd1/vision-dev-kit.git
+```
+
+**③ 내려받은 폴더로 이동합니다.**
+```powershell
 cd vision-dev-kit
+```
+
+**④ 준비 스크립트를 실행합니다.** 몇 분 걸릴 수 있습니다. `Setup finished.`가 나올 때까지 기다리세요.
+```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1
 ```
 
@@ -71,26 +153,50 @@ powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1
 3. ilspycmd 설치 (.NET SDK가 있을 때만, `-SkipIlspy`로 생략 가능)
 4. VisionPro가 설치되어 있으면 help를 HTML로 추출 (`-SkipCognexHelp`로 생략 가능)
 
-> VisionPro help 추출은 수 분 걸릴 수 있습니다. 추출 위치는 `%USERPROFILE%\.claude\tools\cognex-doc\VisionPro\html`입니다.
+> VisionPro가 설치된 PC는 help 추출 때문에 수 분 더 걸립니다. 화면이 멈춘 것처럼 보여도 기다리세요. 추출 위치는 `%USERPROFILE%\.claude\tools\cognex-doc\VisionPro\html`입니다.
 
-### 2단계. Claude Code에 플러그인 설치
-Claude Code 안에서 실행합니다.
-```
-/plugin marketplace add hdvisionrnd1/vision-dev-kit
-/plugin install vision-dev@vision-dev-kit
-```
-터미널에서 실행해도 됩니다.
+---
+
+### 3단계. 플러그인 설치
+
+같은 PowerShell 창에서 계속 진행합니다.
+
+**① 플러그인 목록(마켓플레이스)을 등록합니다.** `Successfully added marketplace`가 나오면 성공입니다.
 ```powershell
 claude plugin marketplace add hdvisionrnd1/vision-dev-kit
+```
+
+**② 플러그인을 설치합니다.** `Successfully installed plugin`이 나오면 성공입니다.
+```powershell
 claude plugin install vision-dev@vision-dev-kit
 ```
 
-### 3단계. Claude Code 재시작
-재시작하면 스킬, MCP, Hook이 적용됩니다. 설치를 확인하려면 다음을 실행합니다.
+> Claude Code 안에서 설치하고 싶다면 `/plugin marketplace add hdvisionrnd1/vision-dev-kit`, `/plugin install vision-dev@vision-dev-kit`를 한 줄씩 입력해도 됩니다.
+
+---
+
+### 4단계. 설치 확인
+
+**① 플러그인 구성을 확인합니다.** `Skills (2)`, `Hooks (1)`, `MCP servers (2)`가 보이면 정상입니다.
 ```powershell
-claude plugin details vision-dev@vision-dev-kit   # 스킬 2, Hook 1, MCP 2 가 보이면 정상
-claude mcp list                                   # plugin:vision-dev:mslearn / context7 → Connected
+claude plugin details vision-dev@vision-dev-kit
 ```
+
+**② MCP 연결을 확인합니다.** `plugin:vision-dev:mslearn`과 `plugin:vision-dev:context7` 옆에 `✔ Connected`가 보이면 정상입니다.
+```powershell
+claude mcp list
+```
+
+---
+
+### 5단계. Claude Code 다시 시작
+
+이미 Claude Code를 켜 두었다면 `/exit`를 입력해 종료하거나 창을 닫으세요. 그다음 아래 명령으로 다시 실행합니다. 다시 시작해야 플러그인이 적용됩니다.
+```powershell
+claude
+```
+
+설치가 끝났습니다. 어떻게 쓰는지는 [사용 방법](#사용-방법)을 보세요.
 
 ---
 
