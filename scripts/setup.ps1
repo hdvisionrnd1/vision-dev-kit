@@ -125,7 +125,7 @@ function Resolve-OmcConflict {
     }
     if ($answer -notmatch '^[Yy]') {
         Write-Host "      left as is."
-        $script:todo.Add("OMC : still active and will conflict with Superpowers. Run setup.ps1 again and answer Y, or see the README (search for: OMC)")
+        $script:todo.Add("OMC : still active and will conflict with Superpowers. Run the installer (or setup.ps1) again and answer Y, or see the README (search for: OMC)")
         return
     }
 

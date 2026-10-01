@@ -205,7 +205,7 @@ function Invoke-VisionDevInstall {
             if (Confirm-Action "Install them now?") {
                 foreach ($p in $missing) {
                     Write-Host "    installing $($p.Name) ..."
-                    & winget install --id $p.Id --exact --source winget --accept-package-agreements --accept-source-agreements
+                    & winget install --id $p.Id --exact --source winget --accept-package-agreements --accept-source-agreements | Out-Host
                     Update-SessionPath
                     if (& $p.Present) {
                         Write-Ok "$($p.Name) installed"
@@ -250,7 +250,7 @@ function Invoke-VisionDevInstall {
         }
     }
     elseif ($isRepo) {
-        & git -C $InstallDir pull --ff-only
+        & git -C $InstallDir pull --ff-only | Out-Host
         if ($LASTEXITCODE -eq 0) {
             Write-Ok "updated: $InstallDir"
         }
@@ -267,7 +267,7 @@ function Invoke-VisionDevInstall {
     else {
         $parent = Split-Path -Parent $InstallDir
         New-Item -ItemType Directory -Force $parent | Out-Null
-        & git clone $RepoUrl $InstallDir
+        & git clone $RepoUrl $InstallDir | Out-Host
         if ($LASTEXITCODE -ne 0) {
             Write-Fail "git clone failed."
             Write-Host "           Check that https://github.com opens in your browser (company firewall/proxy?)."
@@ -288,7 +288,9 @@ function Invoke-VisionDevInstall {
         if ($Yes) {
             $setupArgs["DisableConflicts"] = $true
         }
-        & (Join-Path $InstallDir "scripts\setup.ps1") @setupArgs
+        # Out-Host: show everything setup.ps1 and the tools it runs print. Without it, that output
+        # becomes this function's return value and never reaches the screen or the log.
+        & (Join-Path $InstallDir "scripts\setup.ps1") @setupArgs | Out-Host
         if ($null -ne $global:VisionDevSetupTodo) {
             foreach ($item in $global:VisionDevSetupTodo) {
                 $problems.Add($item)
@@ -374,6 +376,21 @@ function Invoke-VisionDevInstall {
             Write-Ok "$id $($p.version)"
         }
     }
+    # OMC must be off (it conflicts with Superpowers)
+    foreach ($p in $installed) {
+        if ($p.id -like "oh-my-claudecode@*") {
+            if ($p.enabled -eq $true) {
+                Write-Warn "$($p.id) is still enabled - it conflicts with Superpowers"
+                if (-not $CheckOnly) {
+                    $problems.Add("OMC is still enabled: run 'claude plugin disable $($p.id)' (README: OMC)")
+                }
+            }
+            else {
+                Write-Ok "$($p.id) is disabled (no conflict)"
+            }
+        }
+    }
+
     $listText = (& claude plugin list 2>&1 | ForEach-Object { "$_" }) -join "`n"
     if ($listText -match 'failed to load') {
         Write-Fail "a plugin failed to load:"
