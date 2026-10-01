@@ -6,12 +6,13 @@
   "metadata": {
     "description": "C# WinForms/WPF 머신비전·제어 개발용 Claude Code 플러그인 모음"
   },
+  "allowCrossMarketplaceDependenciesOn": ["claude-plugins-official"],
   "plugins": [
     {
       "name": "vision-dev",
       "source": "./plugins/vision-dev",
-      "description": "MIL/VisionPro 로컬 문서 조회 스킬, .NET 문서 MCP, C# 코드 스타일 Hook",
-      "version": "0.1.0"
+      "description": "MIL/VisionPro 문서 조회 스킬, .NET 문서 MCP, C# 스타일 Hook, 팀 규칙 + Superpowers·csharp-lsp 자동 설치",
+      "version": "0.2.0"
     }
   ]
 }

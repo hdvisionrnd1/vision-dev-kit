@@ -7,6 +7,8 @@ Matrox MIL, Cognex VisionPro 같은 비전 라이브러리는 API가 방대하�
 - **PC에 설치된 MIL/VisionPro 문서를 직접 찾아보고**, 그 근거로 코드를 작성합니다.
 - WPF, WinForms, .NET, NuGet 라이브러리는 **최신 공식 문서**를 확인합니다.
 - C# 코드를 수정할 때 **팀 코드 규칙(삼항연산자·한 줄 if 금지)을 자동으로 검사**하고 고칩니다.
+- [Superpowers](https://github.com/obra/superpowers)를 함께 설치해서 **요구사항 정리 → 계획 → 테스트 먼저(TDD) → 리뷰** 순서로 개발합니다. TDD는 판정·계산·통신 로직에만 적용하고, UI·장비 코드는 제외하도록 팀 규칙으로 정해 두었습니다.
+- csharp-lsp를 함께 설치해서 Claude가 C# 정의·참조·컴파일 오류를 정확히 파악합니다.
 
 ---
 
@@ -32,8 +34,13 @@ Matrox MIL, Cognex VisionPro 같은 비전 라이브러리는 API가 방대하�
 | MCP | `mslearn` | Microsoft Learn 공식 문서 검색 (WPF, WinForms, .NET, C#) |
 | MCP | `context7` | 오픈소스 라이브러리 문서 검색 (CommunityToolkit.Mvvm, OpenCvSharp, ScottPlot, NModbus 등) |
 | Hook | C# 스타일 검사 | `.cs` 수정 시 삼항연산자 `? :`, 중괄호 없는 `if`/`else`를 찾아 블록 형태로 고치게 함 |
+| Hook | 팀 규칙 | 세션이 시작될 때 팀 규칙(코드 스타일, TDD 적용 범위, 문서 조회 원칙)을 Claude에게 알려 줌 |
+| 함께 설치 | [Superpowers](https://github.com/obra/superpowers) | 개발 절차 스킬 15개 (브레인스토밍, 계획, TDD, 체계적 디버깅, 코드 리뷰, 완료 전 검증 등) |
+| 함께 설치 | csharp-lsp | C# 언어 서버. 정의로 이동, 참조 찾기, 컴파일 오류 진단 |
 
-> 스킬은 관련 작업을 할 때만 불러옵니다. 평소에는 스킬 설명 약 110토큰만 차지합니다.
+> **vision-dev 하나만 설치하면** Superpowers와 csharp-lsp가 자동으로 함께 설치됩니다. 둘 다 Anthropic 공식 마켓플레이스에 있는 플러그인을 그대로 연결한 것입니다.
+>
+> 스킬은 관련 작업을 할 때만 불러옵니다. 매 세션 상시로 쓰는 양은 스킬 설명, 팀 규칙, Superpowers 안내를 합쳐 약 1,500토큰입니다.
 
 ---
 
@@ -49,7 +56,9 @@ Matrox MIL, Cognex VisionPro 같은 비전 라이브러리는 API가 방대하�
 | Matrox MIL | 선택 | 있어야 `mil-lookup`이 동작 |
 | Cognex VisionPro | 선택 | 있어야 `visionpro-lookup`이 동작 |
 | 7-Zip | VisionPro 사용 시 | help 추출에 필요. `winget install 7zip.7zip` |
-| .NET SDK + ilspycmd | 선택 | 문서로 부족할 때 DLL 디컴파일. `setup.ps1`이 자동 설치 |
+| .NET SDK 6 이상 | 권장 | csharp-lsp(C# 언어 서버)에 필요. `winget install Microsoft.DotNet.SDK.8` |
+| csharp-ls | csharp-lsp에 필요 | `setup.ps1`이 자동 설치 (`dotnet tool install --global csharp-ls`) |
+| ilspycmd | 선택 | 문서로 부족할 때 DLL 디컴파일. `setup.ps1`이 자동 설치 |
 
 MIL이나 VisionPro가 없는 PC에서도 설치할 수 있습니다. 해당 스킬만 "문서 없음"을 안내하고, 나머지 기능은 정상 동작합니다.
 
@@ -161,28 +170,40 @@ powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1
 
 같은 PowerShell 창에서 계속 진행합니다.
 
-**① 플러그인 목록(마켓플레이스)을 등록합니다.** `Successfully added marketplace`가 나오면 성공입니다.
+**① Anthropic 공식 플러그인 목록(마켓플레이스)을 등록합니다.** 함께 설치되는 Superpowers와 csharp-lsp가 여기에 있습니다. `Successfully added marketplace` 또는 `already on disk`가 나오면 성공입니다. (이미 등록된 PC에서 실행해도 괜찮습니다)
+```powershell
+claude plugin marketplace add anthropics/claude-plugins-official
+```
+
+> ⚠️ 이 단계를 빼먹으면 vision-dev가 **"failed to load"** 상태가 되어 아무 기능도 동작하지 않습니다.
+
+**② vision-dev 플러그인 목록(마켓플레이스)을 등록합니다.** `Successfully added marketplace`가 나오면 성공입니다.
 ```powershell
 claude plugin marketplace add hdvisionrnd1/vision-dev-kit
 ```
 
-**② 플러그인을 설치합니다.** `Successfully installed plugin`이 나오면 성공입니다.
+**③ 플러그인을 설치합니다.** `Successfully installed plugin: vision-dev ... (+ 2 dependencies: superpowers, csharp-lsp)`가 나오면 성공입니다.
 ```powershell
 claude plugin install vision-dev@vision-dev-kit
 ```
 
-> Claude Code 안에서 설치하고 싶다면 `/plugin marketplace add hdvisionrnd1/vision-dev-kit`, `/plugin install vision-dev@vision-dev-kit`를 한 줄씩 입력해도 됩니다.
+> Claude Code 안에서 설치하고 싶다면 위 세 명령의 `claude plugin`을 `/plugin`으로 바꿔서 한 줄씩 입력해도 됩니다.
 
 ---
 
 ### 4단계. 설치 확인
 
-**① 플러그인 구성을 확인합니다.** `Skills (2)`, `Hooks (1)`, `MCP servers (2)`가 보이면 정상입니다.
+**① 설치된 플러그인을 확인합니다.** `vision-dev`, `superpowers`, `csharp-lsp` 세 개가 모두 `✔ enabled`면 정상입니다.
+```powershell
+claude plugin list
+```
+
+**② vision-dev 구성을 확인합니다.** `Skills (2)`, `Hooks (2)`, `MCP servers (2)`가 보이면 정상입니다.
 ```powershell
 claude plugin details vision-dev@vision-dev-kit
 ```
 
-**② MCP 연결을 확인합니다.** `plugin:vision-dev:mslearn`과 `plugin:vision-dev:context7` 옆에 `✔ Connected`가 보이면 정상입니다.
+**③ MCP 연결을 확인합니다.** `plugin:vision-dev:mslearn`과 `plugin:vision-dev:context7` 옆에 `✔ Connected`가 보이면 정상입니다.
 ```powershell
 claude mcp list
 ```
@@ -226,11 +247,25 @@ WPF에서 카메라 영상을 WriteableBitmap으로 빠르게 갱신하는 방�
 CommunityToolkit.Mvvm 최신 버전의 [ObservableProperty] 사용법 context7로 확인해서 적용해줘
 ```
 
+**개발 절차** (Superpowers)
+```
+검사 결과를 CSV로 저장하는 기능 만들고 싶어
+정리된 내용으로 계획 세우고 구현해줘
+PLC 통신이 가끔 끊기는데 원인 찾아줘
+```
+- 첫 번째처럼 새 기능을 말하면 바로 코딩하지 않고 질문으로 요구사항부터 정리합니다.
+- 요구사항이 정리되면 작업 계획서를 쓰고 단계별로 구현합니다.
+- 버그는 추측으로 고치지 않고 원인부터 체계적으로 추적합니다.
+
+판정·계산·통신 로직은 테스트를 먼저 쓰고, UI·장비 코드는 테스트 없이 진행합니다([팀 규칙](#팀-규칙)). 이번 작업만 다르게 하고 싶으면 "이번엔 테스트 없이 진행해"처럼 말하면 됩니다.
+
 ### 스킬을 직접 부르기
 자동으로 불리지 않을 때는 슬래시 명령으로 직접 부를 수 있습니다.
 ```
 /vision-dev:mil-lookup
 /vision-dev:visionpro-lookup
+/superpowers:brainstorming
+/superpowers:systematic-debugging
 ```
 
 ---
@@ -315,6 +350,34 @@ string s = "a ? b : c";             // 문자열 안의 ?
 
 규칙 정의 파일은 `plugins/vision-dev/hooks/cs-style/rules.yml`입니다.
 
+### 팀 규칙
+
+세션이 시작될 때마다 Hook이 아래 규칙을 Claude에게 알려 줍니다. 각자 CLAUDE.md에 따로 적지 않아도 모든 팀원에게 같은 규칙이 적용됩니다.
+
+| 규칙 | 내용 |
+|---|---|
+| C# 코드 스타일 | 삼항연산자 금지, 한 줄 if 금지, 항상 블록 if/else (위 스타일 Hook으로 한 번 더 검사) |
+| TDD 적용 | 검사 판정, 좌표·단위 변환·캘리브레이션 계산, 통신 프로토콜 파싱, 시퀀스·상태 전이, 레시피 검증 |
+| TDD 제외 (미리 허락) | UI(Designer, XAML), 카메라 Grab·MIL/VisionPro 초기화, 모터·IO·PLC 실제 입출력, 자동 생성 코드, 실험 코드 |
+| 섞여 있을 때 | 장비·UI 코드 속의 판단 로직은 별도 클래스로 분리해 TDD로 작성. 장비는 `ICamera`, `IPlc` 같은 인터페이스로 감싸 가짜 구현으로 테스트 |
+| 테스트 환경 | 기존 테스트 프레임워크(xUnit/NUnit/MSTest)를 따름. 테스트 프로젝트가 없으면 만들기 전에 먼저 물어봄 |
+| 문서 조회 | MIL·VisionPro API는 추측하지 않고 vision-dev 스킬로 확인 |
+
+Superpowers는 원래 "TDD 예외는 매번 사용자에게 허락받으라"고 되어 있습니다. 팀 규칙이 **"UI·장비 코드는 미리 허락된 예외"**라고 알려 주기 때문에 매번 묻지 않고 바로 진행합니다.
+
+규칙 원문은 `plugins/vision-dev/hooks/team-rules/rules.md`입니다.
+
+### 함께 설치되는 플러그인
+
+| 플러그인 | 출처 | 하는 일 |
+|---|---|---|
+| `superpowers` | Anthropic 공식 마켓플레이스 ([원본](https://github.com/obra/superpowers)) | 개발 절차 스킬. 상황에 맞는 스킬을 Claude가 알아서 고름 |
+| `csharp-lsp` | Anthropic 공식 마켓플레이스 | `csharp-ls` 언어 서버를 연결해 C# 코드 분석 정확도를 높임 |
+
+두 플러그인은 vision-dev의 **의존성**으로 연결되어 있습니다. 원본 플러그인을 그대로 설치하는 것이라 업데이트도 각 원본에서 받습니다.
+
+> ⚠️ Superpowers는 "어떻게 작업할지"를 정하는 플러그인입니다. **oh-my-claudecode 같은 다른 작업 절차 플러그인과 함께 켜면 지침이 충돌**합니다. 쓰고 있었다면 꺼 주세요. (`claude plugin disable <플러그인이름>`)
+
 ---
 
 ## 설정
@@ -336,6 +399,26 @@ string s = "a ? b : c";             // 문자열 안의 ?
 }
 ```
 예를 들어 삼항연산자를 허용하는 프로젝트라면 그 프로젝트의 `.claude/settings.local.json`에만 넣으면 됩니다.
+
+### 팀 규칙 끄기
+```json
+{
+  "env": {
+    "VISION_DEV_TEAM_RULES": "off"
+  }
+}
+```
+끄면 Superpowers의 기본 동작으로 돌아갑니다. 모든 코드에 TDD를 적용하려 하고, 예외가 필요할 때마다 허락을 구합니다.
+
+두 설정을 함께 쓸 때는 `"env"` 하나에 같이 넣습니다.
+```json
+{
+  "env": {
+    "VISION_DEV_STYLE_HOOK": "off",
+    "VISION_DEV_TEAM_RULES": "off"
+  }
+}
+```
 
 ### 경로 변경 (기본 위치가 아닐 때)
 | 환경변수 | 기본값 | 용도 |
@@ -367,21 +450,50 @@ Claude가 문서를 읽을 때마다 권한 확인 창이 뜨는 게 번거롭�
 ## 업데이트 · 제거
 
 ### 업데이트
-새 버전이 올라오면 아래 두 명령을 실행하고 Claude Code를 재시작합니다.
+새 버전이 올라오면 아래 명령을 **한 줄씩** 실행하고 Claude Code를 재시작합니다.
+
+모든 플러그인 목록을 최신으로 받기:
 ```powershell
-claude plugin marketplace update vision-dev-kit      # 저장소의 최신 목록 받기
-claude plugin update vision-dev@vision-dev-kit       # 플러그인을 새 버전으로 교체
+claude plugin marketplace update
+```
+
+vision-dev 업데이트:
+```powershell
+claude plugin update vision-dev@vision-dev-kit
+```
+
+Superpowers 업데이트:
+```powershell
+claude plugin update superpowers@claude-plugins-official
+```
+
+csharp-lsp 업데이트:
+```powershell
+claude plugin update csharp-lsp@claude-plugins-official
 ```
 
 ### 제거
+아래 명령을 **한 줄씩** 실행합니다.
+
+vision-dev 제거:
 ```powershell
 claude plugin uninstall vision-dev@vision-dev-kit
+```
+
+함께 설치됐던 Superpowers·csharp-lsp 정리 (다른 플러그인이 쓰지 않을 때만 제거됨). 지울 목록이 나오고 확인을 물으면 `y`를 입력하세요.
+```powershell
+claude plugin prune
+```
+
+vision-dev 목록 등록 해제:
+```powershell
 claude plugin marketplace remove vision-dev-kit
 ```
 아래 항목은 플러그인을 제거해도 남아 있으니, 필요 없으면 직접 지우세요.
 - VisionPro help: `%USERPROFILE%\.claude\tools\cognex-doc`
 - 색인: `%USERPROFILE%\.claude\cache\vision-dev`
 - ast-grep: `npm uninstall -g @ast-grep/cli`
+- csharp-ls: `dotnet tool uninstall --global csharp-ls`
 
 ---
 
@@ -393,6 +505,26 @@ claude plugin marketplace remove vision-dev-kit
 - 홈 폴더에서도 같은 오류가 나면 Windows 보안의 **제어된 폴더 액세스**(랜섬웨어 방지)가 막고 있는 경우입니다. 다음 둘 중 하나로 해결합니다.
   - `mkdir C:\dev; cd C:\dev`처럼 보호 대상이 아닌 폴더에서 clone하기
   - Windows 보안 → 바이러스 및 위협 방지 → 랜섬웨어 방지 → "앱이 제어된 폴더 액세스를 통과하도록 허용"에 `git.exe` 추가하기
+
+**`claude plugin list`에서 vision-dev가 `✘ failed to load` (`Dependency "superpowers@claude-plugins-official" is not installed`)**
+- 공식 마켓플레이스가 등록되지 않은 상태로 설치한 경우입니다. 아래를 한 줄씩 실행한 뒤 Claude Code를 재시작하세요.
+```powershell
+claude plugin marketplace add anthropics/claude-plugins-official
+```
+```powershell
+claude plugin uninstall vision-dev@vision-dev-kit
+```
+```powershell
+claude plugin install vision-dev@vision-dev-kit
+```
+
+**C# 코드 분석(csharp-lsp)이 동작하지 않음**
+- `csharp-ls --version`이 실행되는지 확인하세요. 없으면 .NET SDK를 설치한 뒤 `dotnet tool install --global csharp-ls`를 실행하세요.
+- 설치한 뒤에는 PowerShell과 Claude Code를 모두 다시 여세요.
+
+**TDD 관련 동작이 이상함 (UI 코드에도 테스트를 쓰려고 하거나, 매번 허락을 물어봄)**
+- `VISION_DEV_TEAM_RULES`가 `off`로 설정되어 있지 않은지 확인하세요.
+- oh-my-claudecode 같은 다른 작업 절차 플러그인이 켜져 있으면 끄세요 (`claude plugin list`로 확인).
 
 **스킬이 안 보이거나 자동으로 불리지 않음**
 - Claude Code를 재시작했는지 확인하세요.
@@ -429,3 +561,4 @@ claude plugin marketplace remove vision-dev-kit
 - **Cognex help 문서는 이 저장소에 포함하지 않습니다.** Cognex의 라이선스 문서이므로 각자 PC에 설치된 VisionPro에서 `scripts/extract-cognex-help.ps1`로 추출합니다. 추출한 파일을 다른 곳에 재배포하지 마세요.
 - 문서는 **각 PC에 설치된 MIL/VisionPro 버전 기준**입니다. 프로젝트에서 쓰는 라이브러리 버전과 다르면 결과가 다를 수 있습니다.
 - MCP 서버(`mslearn`, `context7`)는 외부 서비스입니다. 질문 내용 중 검색어가 해당 서비스로 전송됩니다.
+- Superpowers와 csharp-lsp는 각 원작자가 관리하는 플러그인입니다. 동작이 바뀌면 각 원본 저장소의 변경 내역을 확인하세요.
