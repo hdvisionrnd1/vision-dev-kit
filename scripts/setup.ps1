@@ -10,7 +10,9 @@ param(
     [switch]$SkipIlspy,
     [switch]$SkipCognexHelp,
     # Disable oh-my-claudecode without asking (it conflicts with Superpowers)
-    [switch]$DisableConflicts
+    [switch]$DisableConflicts,
+    # Called from install.ps1: skip the "Next, run these commands" hint and hand the todo list back
+    [switch]$FromInstaller
 )
 
 $ErrorActionPreference = "Stop"
@@ -162,6 +164,7 @@ Write-Host "[1/6] Node.js"
 if (-not (Test-Cmd node)) {
     Write-Host "      FAILED: Node.js is not installed."
     Write-Host "      fix: winget install OpenJS.NodeJS.LTS   (then reopen PowerShell and run setup.ps1 again)"
+    $global:VisionDevSetupTodo = @("Node.js : not installed")
     exit 1
 }
 Write-Host "      ok: $(node --version)"
@@ -226,11 +229,17 @@ if ($todo.Count -gt 0) {
     foreach ($item in $todo) {
         Write-Host "  - $item" -ForegroundColor Yellow
     }
-    Write-Host "(You can continue with the plugin install below and fix these later.)"
+    if (-not $FromInstaller) {
+        Write-Host "(You can continue with the plugin install below and fix these later.)"
+    }
     Write-Host ""
 }
 else {
     Write-Host "Setup finished." -ForegroundColor Green
+}
+if ($FromInstaller) {
+    $global:VisionDevSetupTodo = $todo
+    return
 }
 Write-Host "Next, run these three commands ONE LINE AT A TIME:"
 Write-Host "  claude plugin marketplace add anthropics/claude-plugins-official"

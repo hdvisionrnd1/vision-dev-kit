@@ -15,13 +15,14 @@ Matrox MIL, Cognex VisionPro 같은 비전 라이브러리는 API가 방대하�
 ## 목차
 1. [구성](#구성)
 2. [요구 사항](#요구-사항)
-3. [설치](#설치)
-4. [사용 방법](#사용-방법)
-5. [구성 요소 상세](#구성-요소-상세)
-6. [설정](#설정)
-7. [업데이트 · 제거](#업데이트--제거)
-8. [문제 해결](#문제-해결)
-9. [주의 사항](#주의-사항)
+3. [설치 (자동, 권장)](#설치)
+4. [수동 설치](#수동-설치)
+5. [사용 방법](#사용-방법)
+6. [구성 요소 상세](#구성-요소-상세)
+7. [설정](#설정)
+8. [업데이트 · 제거](#업데이트--제거)
+9. [문제 해결](#문제-해결)
+10. [주의 사항](#주의-사항)
 
 ---
 
@@ -67,7 +68,8 @@ MIL이나 VisionPro가 없는 PC에서도 설치할 수 있습니다. 해당 스
 
 ## 설치
 
-처음 해 보는 분도 따라 할 수 있도록 순서대로 적었습니다. 위에서부터 차례대로 진행하세요.
+**자동 설치기로 한 번에 설치하는 것을 권장합니다.** 필수 프로그램 설치부터 플러그인 설치·확인까지 알아서 진행합니다.
+자동 설치가 안 될 때만 [수동 설치](#수동-설치)를 따라 하세요.
 
 ### 시작하기 전에: 명령어 입력하는 방법
 
@@ -98,6 +100,71 @@ MIL이나 VisionPro가 없는 PC에서도 설치할 수 있습니다. 해당 스
 > Windows 11에서는 시작 버튼을 마우스 오른쪽 클릭 → **터미널**을 눌러도 PowerShell 창이 열립니다. 이때도 "터미널(관리자)"가 아닌 그냥 **터미널**을 고르세요.
 
 ---
+
+### 자동 설치
+
+설치기가 아래를 **한 번에** 처리합니다.
+1. 빠진 필수 프로그램 설치: Git, Node.js, Claude Code, .NET 10 SDK, (VisionPro가 있으면) 7-Zip
+2. vision-dev-kit 내려받기 (`%USERPROFILE%\vision-dev-kit`, 이미 있으면 최신으로 갱신)
+3. PC 준비: ast-grep, csharp-ls 설치, VisionPro help 추출, OMC 확인
+4. 플러그인 설치 (이미 설치되어 있으면 업데이트)
+5. 설치 결과 확인
+
+**방법 A. PowerShell에 한 줄 붙여넣기 (권장)**
+
+위 0단계처럼 PowerShell을 연 뒤, 아래 한 줄을 복사해서 붙여넣고 Enter를 누릅니다.
+```powershell
+irm https://raw.githubusercontent.com/hdvisionrnd1/vision-dev-kit/main/install.ps1 | iex
+```
+
+**방법 B. install.bat 더블클릭**
+
+1. [install.bat](https://github.com/hdvisionrnd1/vision-dev-kit/blob/main/install.bat) 페이지를 엽니다. 오른쪽 위의 **다운로드 버튼**(아래 화살표 모양, "Download raw file")을 누릅니다.
+2. 내려받은 `install.bat`을 **더블클릭**합니다.
+3. "Windows의 PC 보호" 같은 보안 경고가 뜨면 **추가 정보 → 실행**을 누릅니다. 보안 경고 창에 **실행** 버튼이 바로 보이면 그것을 누르면 됩니다.
+
+**설치 중에 할 일**
+
+| 화면에 나오는 것 | 할 일 |
+|---|---|
+| `Install them now? (Y/N)` | `Y` 입력 후 Enter (빠진 프로그램이 있을 때만 나옴) |
+| Windows 권한 확인 창 ("이 앱이 디바이스를 변경하도록 허용하시겠어요?") | **예** 클릭 |
+| `Disable OMC now? (Y/N)` | `Y` 입력 후 Enter (OMC가 설치된 PC만 나옴, [이유](#omcoh-my-claudecode가-설치된-pc)) |
+| 한동안 화면이 멈춘 것처럼 보임 | 프로그램 설치나 VisionPro help 추출 중입니다. **창을 닫지 말고** 기다리세요 |
+
+**끝났을 때 화면 맨 아래를 확인하세요**
+
+| 마지막 메시지 | 의미 |
+|---|---|
+| 🟢 `DONE. vision-dev is installed.` | 완료입니다. 창을 닫고 **새 PowerShell**에서 `claude`를 실행하세요. 처음이면 로그인 화면이 나옵니다 |
+| 🟡 `Installed, but please check these items:` | 설치는 됐지만 확인할 항목이 있습니다. 목록의 내용을 [문제 해결](#문제-해결)에서 찾으세요. 대부분 **설치기를 한 번 더 실행**하면 해결됩니다 |
+| 🔴 `[FAIL] ...` 후 중단 | [문제 해결 → 자동 설치기](#자동-설치기)에서 같은 메시지를 찾으세요 |
+
+> 설치 과정 전체가 `%USERPROFILE%\vision-dev-install.log` 파일에 기록됩니다. 해결이 안 되면 이 파일을 키트를 공유한 사람에게 보내 주세요.
+>
+> 설치기는 **여러 번 실행해도 안전**합니다. 이미 된 단계는 건너뜁니다. 새 버전이 나왔을 때도 같은 방법으로 실행하면 업데이트됩니다.
+
+<details>
+<summary>고급: 확인만 하기 / 옵션</summary>
+
+내려받은 폴더에서 `install.ps1`을 직접 실행하면 옵션을 줄 수 있습니다.
+
+| 옵션 | 동작 |
+|---|---|
+| `-CheckOnly` | 무엇이 빠졌는지 **확인만** 하고 아무것도 바꾸지 않음 |
+| `-Yes` | 모든 질문에 Y로 답함 |
+| `-InstallDir <폴더>` | 저장소를 받을 위치 지정 (기본 `%USERPROFILE%\vision-dev-kit`) |
+
+```powershell
+powershell -ExecutionPolicy Bypass -File $env:USERPROFILE\vision-dev-kit\install.ps1 -CheckOnly
+```
+</details>
+
+---
+
+## 수동 설치
+
+자동 설치가 안 될 때 단계별로 직접 설치하는 방법입니다. 위의 [시작하기 전에](#시작하기-전에-명령어-입력하는-방법)와 [0단계](#0단계-powershell-열기)를 먼저 읽고, 아래 1단계부터 차례대로 진행하세요.
 
 ### 1단계. 필수 프로그램 확인
 
@@ -522,6 +589,45 @@ claude plugin marketplace remove vision-dev-kit
 
 > 오류 메시지의 앞부분을 복사해서 **Ctrl + F**로 이 섹션에서 찾으세요.
 > 같은 오류라도 Windows 언어에 따라 영어 또는 한국어로 나옵니다.
+
+### 자동 설치기
+
+**`Invoke-RestMethod : 원격 이름을 확인할 수 없습니다`** / **`The remote name could not be resolved`** / **`irm : ...`**
+- 인터넷에 연결되지 않았거나 회사 방화벽·프록시가 `raw.githubusercontent.com`을 막고 있습니다. 브라우저로 GitHub이 열리는지 확인하세요.
+- 회사 네트워크에서 계속 안 되면 [수동 설치](#수동-설치)를 따라 하세요.
+
+**`기본 연결이 닫혔습니다`** / **`The underlying connection was closed`** / **`보안 채널을 만들 수 없습니다`** / **`Could not create SSL/TLS secure channel`**
+- 오래된 Windows 10의 PowerShell이 GitHub 접속에 필요한 TLS 1.2를 기본으로 쓰지 않아서 생깁니다. 아래 한 줄로 실행하세요.
+```powershell
+[Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor 3072; irm https://raw.githubusercontent.com/hdvisionrnd1/vision-dev-kit/main/install.ps1 | iex
+```
+
+**`[FAIL] winget is not available on this PC.`**
+- Microsoft Store에서 **"앱 설치 관리자"(App Installer)**를 설치하거나 업데이트한 뒤 설치기를 다시 실행하세요.
+
+**`[FAIL] ... was not detected after installing.`**
+- 프로그램은 설치됐지만 이 창에서 아직 인식되지 않은 경우가 대부분입니다. **PowerShell 창을 닫고 새로 연 뒤** 설치기를 다시 실행하세요.
+
+**`[FAIL] Required programs are missing: ...`**
+- 필수 프로그램(Git, Node.js, Claude Code) 설치를 `N`으로 건너뛰었거나 설치에 실패한 경우입니다. 설치기를 다시 실행해서 `Y`로 답하거나, 아래 [1단계 표](#1단계-필수-프로그램)의 명령으로 직접 설치하세요.
+
+**`[FAIL] ...\vision-dev-kit already exists and is not a git download.`**
+- 같은 이름의 폴더가 이미 있는데 git으로 받은 것이 아닙니다(예: ZIP으로 받아서 압축을 푼 폴더). 그 폴더의 이름을 바꾸거나 지운 뒤 설치기를 다시 실행하세요.
+
+**`[FAIL] git clone failed.`**
+- 아래 [2단계](#2단계-내려받기준비)의 `Permission denied`, `Could not resolve host` 항목을 보세요.
+
+**`[WARN] could not update (local changes?)`**
+- `vision-dev-kit` 폴더 안의 파일을 직접 고친 경우입니다. 설치는 기존 파일로 계속 진행됩니다. 최신으로 받고 싶으면 그 폴더를 지우고 설치기를 다시 실행하세요.
+
+**`[WARN] PowerShell is running as Administrator.`**
+- 관리자 권한 창에서 실행했습니다. 대부분 그대로 진행되지만, 문제가 생기면 창을 닫고 [0단계](#0단계-powershell-열기)처럼 일반 PowerShell에서 다시 실행하세요.
+
+**5/5 Verify에서 `[FAIL] ... is not installed` 또는 `a plugin failed to load`**
+- 설치기를 한 번 더 실행하세요. 그래도 같으면 아래 [3단계 (플러그인 설치)](#3단계-플러그인-설치-1)와 [4단계 (설치 확인)](#4단계-설치-확인-1) 항목을 보거나 로그 파일(`%USERPROFILE%\vision-dev-install.log`)을 보내 주세요.
+
+**install.bat을 더블클릭했더니 "Windows의 PC 보호" 창이 뜸**
+- 인터넷에서 받은 파일이라 나오는 경고입니다. **추가 정보 → 실행**을 누르세요.
 
 ### 1단계 (필수 프로그램)
 
