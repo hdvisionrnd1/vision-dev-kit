@@ -60,7 +60,7 @@ Matrox MIL, Cognex VisionPro 같은 비전 라이브러리는 API가 방대하�
 | **.NET 10 SDK** | 권장 | csharp-ls·ilspycmd 최신 버전이 .NET 10 전용이라 **.NET 8 이하만 있으면 설치가 실패**합니다. `winget install Microsoft.DotNet.SDK.10` (기존 SDK를 지우지 않고 나란히 설치됨) |
 | csharp-ls | csharp-lsp에 필요 | `setup.ps1`이 자동 설치 (`dotnet tool install --global csharp-ls`) |
 | ilspycmd | 선택 | 문서로 부족할 때 DLL 디컴파일. `setup.ps1`이 자동 설치 |
-| oh-my-claudecode(OMC) | ❌ 함께 쓰면 안 됨 | Superpowers와 충돌. 설치되어 있으면 `setup.ps1`이 끌지 물어봄 ([OMC가 설치된 PC](#omcoh-my-claudecode가-설치된-pc)) |
+| oh-my-claudecode(OMC) | ❌ 함께 쓰면 안 됨 | Superpowers와 충돌. 설치되어 있으면 설치기가 **자동으로 끔** (상태 표시줄 HUD는 그대로 유지) ([OMC가 설치된 PC](#omcoh-my-claudecode가-설치된-pc)) |
 
 MIL이나 VisionPro가 없는 PC에서도 설치할 수 있습니다. 해당 스킬만 "문서 없음"을 안내하고, 나머지 기능은 정상 동작합니다.
 
@@ -129,8 +129,9 @@ irm https://raw.githubusercontent.com/hdvisionrnd1/vision-dev-kit/main/install.p
 |---|---|
 | `Install them now? (Y/N)` | `Y` 입력 후 Enter (빠진 프로그램이 있을 때만 나옴) |
 | Windows 권한 확인 창 ("이 앱이 디바이스를 변경하도록 허용하시겠어요?") | **예** 클릭 |
-| `Disable OMC now? (Y/N)` | `Y` 입력 후 Enter (OMC가 설치된 PC만 나옴, [이유](#omcoh-my-claudecode가-설치된-pc)) |
 | 한동안 화면이 멈춘 것처럼 보임 | 프로그램 설치나 VisionPro help 추출 중입니다. **창을 닫지 말고** 기다리세요 |
+
+> OMC(oh-my-claudecode)가 설치된 PC는 설치기가 **묻지 않고 자동으로 OMC를 끕니다.** 화면 아래 상태 표시줄(HUD)은 그대로 유지됩니다. ([이유](#omcoh-my-claudecode가-설치된-pc))
 
 **끝났을 때 화면 맨 아래를 확인하세요**
 
@@ -244,7 +245,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1
 3. csharp-ls 설치 (.NET 10 SDK가 있을 때만)
 4. ilspycmd 설치 (.NET 10 SDK가 있을 때만, `-SkipIlspy`로 생략 가능)
 5. VisionPro가 설치되어 있으면 help를 HTML로 추출 (`-SkipCognexHelp`로 생략 가능)
-6. **oh-my-claudecode(OMC)가 켜져 있는지 확인.** 켜져 있으면 `Disable OMC now? (Y/N)`라고 묻습니다. **`Y`를 입력하고 Enter**를 누르면 OMC를 끄고 CLAUDE.md의 OMC 지침을 백업한 뒤 정리합니다. ([자세히](#omcoh-my-claudecode가-설치된-pc))
+6. **oh-my-claudecode(OMC)가 켜져 있으면 자동으로 끕니다.** CLAUDE.md의 OMC 지침은 백업한 뒤 정리하고, 상태 표시줄(HUD)은 그대로 둡니다. ([자세히](#omcoh-my-claudecode가-설치된-pc))
 
 끝났을 때 화면 맨 아래를 확인하세요.
 - 초록색 `Setup finished.` → 모두 정상입니다. 3단계로 넘어가세요.
@@ -714,8 +715,8 @@ powershell -ExecutionPolicy Bypass -File .\scripts\extract-cognex-help.ps1 -ChmP
 ```
 - 영어가 아닌 help를 추출하려면 `-Lang ja` 또는 `-Lang zh-Hans`를 붙이세요.
 
-**setup 화면: `oh-my-claudecode (OMC) found`**
-- [OMC가 설치된 PC](#omcoh-my-claudecode가-설치된-pc)를 보세요. `Disable OMC now? (Y/N)`에 `Y`를 입력하면 자동으로 처리됩니다.
+**setup 화면: `oh-my-claudecode (OMC) found` ... `turned off automatically`**
+- 오류가 아닙니다. Superpowers와 충돌하는 OMC를 자동으로 끈 것입니다. 상태 표시줄(HUD)은 그대로 유지됩니다. 자세한 내용은 [OMC가 설치된 PC](#omcoh-my-claudecode가-설치된-pc)를 보세요.
 
 **setup 화면 마지막: `Setup finished, but these steps need attention:`** (노란 글씨)
 - 바로 아래 목록에 처리할 항목이 나옵니다. 위 항목들에서 같은 내용을 찾아 해결하고, setup을 다시 실행하면 됩니다.
@@ -819,16 +820,18 @@ npm i -g @ast-grep/cli
 oh-my-claudecode(OMC)와 Superpowers는 둘 다 "Claude가 어떻게 작업할지"를 지시하는 도구라서, 함께 켜면 지침이 충돌합니다.
 OMC는 플러그인 외에 `%USERPROFILE%\.claude\CLAUDE.md`에도 자기 지침 블록을 써 넣기 때문에, **플러그인만 끄면 지침이 남습니다.** 두 가지를 모두 처리해야 합니다.
 
-**방법 1. 자동 (권장)**
-setup을 실행하고 `[6/6]` 단계에서 `Disable OMC now? (Y/N)`가 나오면 `Y`를 입력합니다. 이미 setup을 실행했어도 다시 실행하면 됩니다.
-```powershell
-cd $env:USERPROFILE\vision-dev-kit
-```
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1
-```
+**방법 1. 자동 (기본)**
+[자동 설치](#자동-설치)를 실행하면 **묻지 않고 자동으로** 처리됩니다. 이미 설치했다면 설치기를 한 번 더 실행하면 됩니다.
 - OMC 플러그인을 **끄기만** 합니다(삭제하지 않음).
 - CLAUDE.md는 `CLAUDE.md.bak-before-vision-dev-날짜시간`으로 백업한 뒤 OMC 블록만 지웁니다. 직접 적어 둔 내용은 그대로 남습니다.
+- **화면 아래 상태 표시줄(OMC HUD)은 건드리지 않습니다.** 플러그인이 꺼져도 HUD는 계속 표시됩니다.
+- 설치기 마지막 확인 단계에 `[OK] oh-my-claudecode@omc is disabled (no conflict)`가 나오면 완료입니다.
+
+**OMC를 끄지 않으려면** (권장하지 않음)
+설치기를 실행하기 전에 아래를 먼저 실행하면 OMC를 그대로 둡니다. 이 경우 Superpowers와 지침이 충돌한다는 경고가 계속 나옵니다.
+```powershell
+$env:VISION_DEV_KEEP_OMC = "1"
+```
 
 **방법 2. 수동**
 
@@ -862,7 +865,7 @@ claude plugin enable oh-my-claudecode@omc
 ```
 그다음 CLAUDE.md를 백업 파일로 되돌리세요. 이 상태에서는 Superpowers와 다시 충돌하므로, OMC를 계속 쓸 거라면 vision-dev를 제거하는 것이 좋습니다([제거](#제거) 참고).
 
-> 참고: OMC를 꺼도 화면 아래 상태 표시줄(HUD)은 남아 있을 수 있습니다. 표시만 하는 기능이라 그대로 두어도 문제없습니다.
+> 참고: OMC를 꺼도 화면 아래 상태 표시줄(HUD)은 그대로 동작합니다. HUD는 Claude Code 설정(`statusLine`)에서 따로 실행되는 표시 기능이라 OMC 플러그인이 꺼져 있어도 상관없습니다.
 
 ---
 

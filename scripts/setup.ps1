@@ -9,8 +9,10 @@
 param(
     [switch]$SkipIlspy,
     [switch]$SkipCognexHelp,
-    # Disable oh-my-claudecode without asking (it conflicts with Superpowers)
+    # Kept for compatibility: OMC is now disabled automatically (it conflicts with Superpowers)
     [switch]$DisableConflicts,
+    # Do NOT disable oh-my-claudecode (same as env VISION_DEV_KEEP_OMC=1)
+    [switch]$KeepOmc,
     # Called from install.ps1: skip the "Next, run these commands" hint and hand the todo list back
     [switch]$FromInstaller
 )
@@ -116,18 +118,17 @@ function Resolve-OmcConflict {
     if ($hasBlock) {
         Write-Host "        - OMC instructions block in $claudeMdPath"
     }
-    Write-Host "      OMC conflicts with Superpowers (installed with vision-dev). Disabling it is recommended."
-    Write-Host "      This will: disable the OMC plugin (not uninstall) and move the OMC block out of CLAUDE.md (backup kept)."
-
-    $answer = "Y"
-    if (-not $DisableConflicts) {
-        $answer = Read-Host "      Disable OMC now? (Y/N)"
-    }
-    if ($answer -notmatch '^[Yy]') {
-        Write-Host "      left as is."
-        $script:todo.Add("OMC : still active and will conflict with Superpowers. Run the installer (or setup.ps1) again and answer Y, or see the README (search for: OMC)")
+    $keep = $KeepOmc -or ($env:VISION_DEV_KEEP_OMC -eq "1")
+    if ($keep) {
+        Write-Host "      left as is (-KeepOmc / VISION_DEV_KEEP_OMC=1)."
+        $script:todo.Add("OMC : kept enabled on request - it will conflict with Superpowers (README: OMC)")
         return
     }
+
+    Write-Host "      OMC conflicts with Superpowers (installed with vision-dev), so it is turned off automatically:"
+    Write-Host "        - the OMC plugin is disabled (not uninstalled)"
+    Write-Host "        - the OMC block is moved out of CLAUDE.md (backup kept)"
+    Write-Host "        - the OMC status bar (HUD) is NOT touched and keeps working"
 
     foreach ($id in $enabledIds) {
         if (Test-Cmd claude) {
@@ -149,6 +150,15 @@ function Resolve-OmcConflict {
         $cleaned = [regex]::Replace($claudeMd, '(?s)<!-- OMC:START -->.*?<!-- OMC:END -->\r?\n?', '')
         [System.IO.File]::WriteAllText($claudeMdPath, $cleaned, (New-Object System.Text.UTF8Encoding $false))
         Write-Host "      removed OMC block from CLAUDE.md (backup: $backup)"
+    }
+
+    # The OMC HUD is a separate statusLine script; it keeps working while the plugin is disabled.
+    $usesHud = $false
+    if (Test-Path $settingsPath) {
+        $usesHud = (Get-Content $settingsPath -Raw) -match 'omc-hud'
+    }
+    if ($usesHud) {
+        Write-Host "      status bar (OMC HUD): kept as is"
     }
 
     Write-Host "      done. To undo later:" -ForegroundColor Green
