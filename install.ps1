@@ -163,7 +163,10 @@ function Invoke-VisionDevInstall {
     }
 
     $vproDir = Join-Path $env:ProgramFiles "Cognex\VisionPro"
-    $helpDir = Join-Path $env:USERPROFILE ".claude\tools\cognex-doc\VisionPro\html"
+    $helpDir = $env:COGNEX_HELP_DIR
+    if ([string]::IsNullOrEmpty($helpDir)) {
+        $helpDir = Join-Path $env:USERPROFILE ".claude\tools\cognex-doc\VisionPro\html"
+    }
     $sevenZip = Join-Path $env:ProgramFiles "7-Zip\7z.exe"
 
     $programs = @(

@@ -40,5 +40,6 @@ ilspycmd -t Matrox.MatroxImagingLibrary.MIL "C:/Program Files/Matrox Imaging/MIL
 (`dotnet tool install -g ilspycmd` 필요. .NET 래퍼 구현만 보이므로 네이티브 동작은 2번 문서를 기준으로 할 것)
 
 ## 주의
+- 스크립트가 "MIL 레퍼런스 폴더가 없습니다"라고 하면 이 PC에는 MIL이 없거나 다른 위치에 있다. 추측으로 파라미터·상수를 쓰지 말고 사용자에게 먼저 알린다(다른 위치라면 `MIL_DOC_DIR` 지정). 그래도 일반 지식으로 작성해 달라고 하면, 로컬 문서로 검증하지 못한 코드라는 점을 분명히 밝힌다.
 - 문서는 이 PC에 설치된 MIL 버전 기준이다(`Reference\index.json`의 version). 사용자 프로젝트의 MIL 버전과 다를 수 있으니 차이가 의심되면 언급.
 - 답변/코드에 사용한 상수·파라미터는 어느 문서에서 확인했는지 근거를 짧게 남긴다.

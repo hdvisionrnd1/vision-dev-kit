@@ -47,5 +47,6 @@ ilspycmd -l c "C:/Program Files/Cognex/VisionPro/ReferencedAssemblies/Cognex.Vis
 (`dotnet tool install -g ilspycmd` 필요)
 
 ## 주의
+- 스크립트가 "VisionPro가 설치되어 있지 않습니다"라고 하면 이 PC에는 확인할 로컬 문서가 없다. 추측으로 API를 쓰지 말고 사용자에게 먼저 알린다. 그래도 일반 지식으로 작성해 달라고 하면, 로컬 문서로 검증하지 못한 코드라는 점을 분명히 밝힌다.
 - 문서는 이 PC에 설치된 VisionPro 버전 기준이다.
 - 답변/코드에 사용한 API는 어느 문서·샘플에서 확인했는지 근거를 짧게 남긴다.

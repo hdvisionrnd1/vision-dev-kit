@@ -14,11 +14,24 @@ const INDEX_DIR = path.join(os.homedir(), ".claude", "cache", "vision-dev");
 const INDEX = path.join(INDEX_DIR, "cognex-titles.tsv");
 
 if (!fs.existsSync(HTML_DIR)) {
-  console.error(
-    `VisionPro help(HTML)가 없습니다: ${HTML_DIR}\n` +
-      "vision-dev-kit 저장소의 scripts/extract-cognex-help.ps1 을 실행해 이 PC의 VisionPro 설치본에서 추출하세요.\n" +
-      "그 전까지는 ReferencedAssemblies\\*.xml 과 samples\\Programming 으로 확인합니다."
-  );
+  // VisionPro 설치 폴더: 환경변수 VISIONPRO_DIR 또는 기본 위치
+  const vproDir =
+    process.env.VISIONPRO_DIR || path.join(process.env.ProgramFiles || "C:\\Program Files", "Cognex", "VisionPro");
+  if (!fs.existsSync(vproDir)) {
+    // VisionPro 자체가 없는 PC: 조회할 로컬 문서가 전혀 없음
+    console.error(
+      `이 PC에는 Cognex VisionPro가 설치되어 있지 않습니다 (${vproDir} 없음).\n` +
+        "로컬 VisionPro 문서(help, IntelliSense XML, 샘플)를 조회할 수 없습니다.\n" +
+        "추측으로 API를 쓰지 말고 사용자에게 이 사실을 알릴 것."
+    );
+  } else {
+    // VisionPro는 있는데 help만 추출되지 않은 PC
+    console.error(
+      `VisionPro help(HTML)가 아직 추출되지 않았습니다: ${HTML_DIR}\n` +
+        "vision-dev-kit 저장소의 scripts/extract-cognex-help.ps1 을 실행해 추출하세요(자동 설치기를 다시 실행해도 됨).\n" +
+        `그 전까지는 ${path.join(vproDir, "ReferencedAssemblies")}\\*.xml 과 ${path.join(vproDir, "samples", "Programming")} 으로 확인합니다.`
+    );
+  }
   process.exit(3);
 }
 

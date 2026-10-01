@@ -62,7 +62,7 @@ Matrox MIL, Cognex VisionPro 같은 비전 라이브러리는 API가 방대하�
 | ilspycmd | 선택 | 문서로 부족할 때 DLL 디컴파일. `setup.ps1`이 자동 설치 |
 | oh-my-claudecode(OMC) | ❌ 함께 쓰면 안 됨 | Superpowers와 충돌. 설치되어 있으면 설치기가 **자동으로 끔** (상태 표시줄 HUD는 그대로 유지) ([OMC가 설치된 PC](#omcoh-my-claudecode가-설치된-pc)) |
 
-MIL이나 VisionPro가 없는 PC에서도 설치할 수 있습니다. 해당 스킬만 "문서 없음"을 안내하고, 나머지 기능은 정상 동작합니다.
+MIL이나 VisionPro가 없는 PC에서도 **자동 설치기가 끝까지 정상 진행**됩니다(VisionPro 관련 단계는 건너뜀). 설치 후에는 해당 스킬만 "이 PC에는 설치되어 있지 않습니다"라고 안내하고, 나머지 기능(문서 MCP, 스타일 검사, 팀 규칙, Superpowers, csharp-lsp)은 그대로 동작합니다.
 
 ---
 
@@ -514,6 +514,7 @@ Superpowers는 원래 "TDD 예외는 매번 사용자에게 허락받으라"고 
 |---|---|---|
 | `MIL_DOC_DIR` | `C:\Program Files\Matrox Imaging\MIL\DOC\mil_help\content\Reference` | MIL 레퍼런스 폴더 |
 | `COGNEX_HELP_DIR` | `%USERPROFILE%\.claude\tools\cognex-doc\VisionPro\html` | 추출한 VisionPro help 폴더 |
+| `VISIONPRO_DIR` | `C:\Program Files\Cognex\VisionPro` | VisionPro 설치 폴더 (다른 드라이브에 설치한 경우) |
 | `AST_GREP_PATH` | npm 전역 설치 위치, 없으면 PATH 검색 | ast-grep 실행 파일 |
 
 ### 문서 읽기 권한 (선택)
@@ -806,8 +807,12 @@ npm i -g @ast-grep/cli
 - `claude plugin details vision-dev@vision-dev-kit`로 설치 상태를 확인하세요.
 - `/vision-dev:mil-lookup`처럼 직접 불러서 써 보세요.
 
-**`VisionPro help(HTML)가 없습니다`**
-- `scripts\extract-cognex-help.ps1`을 실행하세요 (7-Zip 필요). 다른 위치에 추출했다면 `COGNEX_HELP_DIR`을 지정하세요.
+**`이 PC에는 Cognex VisionPro가 설치되어 있지 않습니다`**
+- 정상입니다. VisionPro가 없는 PC라서 VisionPro 문서를 조회할 수 없다는 뜻입니다. 나머지 기능은 그대로 동작합니다.
+- VisionPro를 `C:\Program Files`가 아닌 곳에 설치했다면 `VISIONPRO_DIR`에 설치 폴더를 지정하세요.
+
+**`VisionPro help(HTML)가 아직 추출되지 않았습니다`**
+- VisionPro는 있는데 help만 추출되지 않은 상태입니다. 자동 설치기를 다시 실행하거나 `scripts\extract-cognex-help.ps1`을 실행하세요 (7-Zip 필요). 다른 위치에 추출했다면 `COGNEX_HELP_DIR`을 지정하세요.
 
 **`MIL 레퍼런스 폴더가 없습니다`**
 - MIL이 설치되어 있지 않거나 다른 위치에 설치된 경우입니다. 다른 위치라면 `MIL_DOC_DIR`을 지정하세요.

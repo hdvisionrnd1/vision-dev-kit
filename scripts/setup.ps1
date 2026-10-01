@@ -209,7 +209,11 @@ else {
 }
 
 Write-Host "[5/6] Cognex VisionPro help"
-$helpDir = Join-Path $env:USERPROFILE ".claude\tools\cognex-doc\VisionPro\html"
+# same location the visionpro-lookup skill reads (COGNEX_HELP_DIR overrides it)
+$helpDir = $env:COGNEX_HELP_DIR
+if ([string]::IsNullOrEmpty($helpDir)) {
+    $helpDir = Join-Path $env:USERPROFILE ".claude\tools\cognex-doc\VisionPro\html"
+}
 $vpro = Join-Path $env:ProgramFiles "Cognex\VisionPro"
 if ($SkipCognexHelp) {
     Write-Host "      skipped"
