@@ -104,7 +104,7 @@ MIL이나 VisionPro가 없는 PC에서도 **자동 설치기가 끝까지 정상
 ### 자동 설치
 
 설치기가 아래를 **한 번에** 처리합니다.
-1. 빠진 필수 프로그램 설치: Git, Node.js, Claude Code, .NET 10 SDK, (VisionPro가 있으면) 7-Zip
+1. 빠진 필수 프로그램을 **묻지 않고 자동 설치**: Git, Node.js, Claude Code, .NET 10 SDK, (VisionPro가 있으면) 7-Zip
 2. vision-dev-kit 내려받기 (`%USERPROFILE%\vision-dev-kit`, 이미 있으면 최신으로 갱신)
 3. PC 준비: ast-grep, csharp-ls 설치, VisionPro help 추출, OMC 확인
 4. 플러그인 설치 (이미 설치되어 있으면 업데이트)
@@ -127,7 +127,6 @@ irm https://raw.githubusercontent.com/hdvisionrnd1/vision-dev-kit/main/install.p
 
 | 화면에 나오는 것 | 할 일 |
 |---|---|
-| `Install them now? (Y/N)` | `Y` 입력 후 Enter (빠진 프로그램이 있을 때만 나옴) |
 | Windows 권한 확인 창 ("이 앱이 디바이스를 변경하도록 허용하시겠어요?") | **예** 클릭 |
 | 한동안 화면이 멈춘 것처럼 보임 | 프로그램 설치나 VisionPro help 추출 중입니다. **창을 닫지 말고** 기다리세요 |
 
@@ -153,7 +152,6 @@ irm https://raw.githubusercontent.com/hdvisionrnd1/vision-dev-kit/main/install.p
 | 옵션 | 동작 |
 |---|---|
 | `-CheckOnly` | 무엇이 빠졌는지 **확인만** 하고 아무것도 바꾸지 않음 |
-| `-Yes` | 모든 질문에 Y로 답함 |
 | `-InstallDir <폴더>` | 저장소를 받을 위치 지정 (기본 `%USERPROFILE%\vision-dev-kit`) |
 
 ```powershell
@@ -611,7 +609,7 @@ claude plugin marketplace remove vision-dev-kit
 - 프로그램은 설치됐지만 이 창에서 아직 인식되지 않은 경우가 대부분입니다. **PowerShell 창을 닫고 새로 연 뒤** 설치기를 다시 실행하세요.
 
 **`[FAIL] Required programs are missing: ...`**
-- 필수 프로그램(Git, Node.js, Claude Code) 설치를 `N`으로 건너뛰었거나 설치에 실패한 경우입니다. 설치기를 다시 실행해서 `Y`로 답하거나, 아래 [1단계 표](#1단계-필수-프로그램)의 명령으로 직접 설치하세요.
+- 필수 프로그램(Git, Node.js, Claude Code) 설치에 실패한 경우입니다. 바로 위에 나온 `[FAIL]` 줄의 원인을 해결한 뒤 설치기를 다시 실행하거나, 아래 [1단계 표](#1단계-필수-프로그램)의 명령으로 직접 설치하세요.
 
 **`[FAIL] ...\vision-dev-kit already exists and is not a git download.`**
 - 같은 이름의 폴더가 이미 있는데 git으로 받은 것이 아닙니다(예: ZIP으로 받아서 압축을 푼 폴더). 그 폴더의 이름을 바꾸거나 지운 뒤 설치기를 다시 실행하세요.

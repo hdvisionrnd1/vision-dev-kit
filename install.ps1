@@ -15,7 +15,7 @@
     5. Verifies the result and writes a log to %USERPROFILE%\vision-dev-install.log
 
   Options (when running the file directly):
-    -Yes          answer Yes to every question
+    -Yes          kept for compatibility (the installer no longer asks any questions)
     -CheckOnly    only report what is missing, change nothing
     -InstallDir   where to put the repository (default %USERPROFILE%\vision-dev-kit)
 #>
@@ -98,15 +98,6 @@ function Invoke-VisionDevInstall {
             }
         }
         return $max
-    }
-
-    function Confirm-Action($question) {
-        if ($Yes) {
-            Write-Host "    $question (Y/N): Y (-Yes)"
-            return $true
-        }
-        $answer = Read-Host "    $question (Y/N)"
-        return ($answer -match '^[Yy]')
     }
 
     # Run claude, show its output, return exit code + text
@@ -205,23 +196,17 @@ function Invoke-VisionDevInstall {
                 Write-Host "      - $($p.Name)  (winget install $($p.Id))"
             }
             Write-Host "    Windows may ask for permission (UAC) - click Yes."
-            if (Confirm-Action "Install them now?") {
-                foreach ($p in $missing) {
-                    Write-Host "    installing $($p.Name) ..."
-                    & winget install --id $p.Id --exact --source winget --accept-package-agreements --accept-source-agreements | Out-Host
-                    Update-SessionPath
-                    if (& $p.Present) {
-                        Write-Ok "$($p.Name) installed"
-                    }
-                    else {
-                        Write-Fail "$($p.Name) was not detected after installing."
-                        $problems.Add("$($p.Name): close this window, open a NEW PowerShell window and run the installer again. If it still fails: winget install $($p.Id)")
-                    }
+            # Installed without asking: this is a one-click installer.
+            foreach ($p in $missing) {
+                Write-Host "    installing $($p.Name) ..."
+                & winget install --id $p.Id --exact --source winget --accept-package-agreements --accept-source-agreements | Out-Host
+                Update-SessionPath
+                if (& $p.Present) {
+                    Write-Ok "$($p.Name) installed"
                 }
-            }
-            else {
-                foreach ($p in $missing) {
-                    $problems.Add("$($p.Name): not installed (winget install $($p.Id))")
+                else {
+                    Write-Fail "$($p.Name) was not detected after installing."
+                    $problems.Add("$($p.Name): close this window, open a NEW PowerShell window and run the installer again. If it still fails: winget install $($p.Id)")
                 }
             }
         }
