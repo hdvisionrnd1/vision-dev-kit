@@ -50,9 +50,10 @@ Matrox MIL, Cognex VisionPro 같은 비전 라이브러리는 API가 방대하�
 | 항목 | 필수 여부 | 비고 |
 |---|---|---|
 | Windows 10/11 | 필수 | 경로와 설치 스크립트가 Windows 기준 |
-| [Claude Code](https://claude.com/claude-code) | 필수 | |
+| Claude 계정 | 필수 | **Pro, Max, Team, Enterprise** 중 하나. 무료 계정으로는 Claude Code를 쓸 수 없습니다 |
+| [Claude Code](https://claude.com/claude-code) | 필수 | `winget install Anthropic.ClaudeCode` |
 | Git | 필수 | 저장소를 내려받을 때 필요. `winget install Git.Git` |
-| Node.js (LTS) | 필수 | 스킬 스크립트와 Hook이 Node로 실행됨. `winget install OpenJS.NodeJS.LTS` |
+| Node.js (LTS) | 필수 | **18 이상**. 스킬 스크립트와 Hook이 Node로 실행됨. `winget install OpenJS.NodeJS.LTS` |
 | ast-grep | Hook에 필요 | `setup.ps1`이 자동 설치 (`npm i -g @ast-grep/cli`) |
 | Matrox MIL | 선택 | 있어야 `mil-lookup`이 동작 |
 | Cognex VisionPro | 선택 | 있어야 `visionpro-lookup`이 동작 |
@@ -105,10 +106,15 @@ MIL이나 VisionPro가 없는 PC에서도 **자동 설치기가 끝까지 정상
 
 설치기가 아래를 **한 번에** 처리합니다.
 1. 빠진 필수 프로그램을 **묻지 않고 자동 설치**: Git, Node.js, Claude Code, .NET 10 SDK, (VisionPro가 있으면) 7-Zip
+   - Node.js가 17 이하로 오래됐으면 최신 LTS로 올립니다.
+   - Claude Code가 이미 있으면 최신 버전으로 업데이트합니다.
 2. vision-dev-kit 내려받기 (`%USERPROFILE%\vision-dev-kit`, 이미 있으면 최신으로 갱신)
 3. PC 준비: ast-grep, csharp-ls 설치, VisionPro help 추출, OMC 확인
 4. 플러그인 설치 (이미 설치되어 있으면 업데이트)
-5. 설치 결과 확인
+5. **Claude 계정 연결**: 아직 로그인하지 않은 PC면 브라우저에 로그인 화면을 띄웁니다
+6. 설치 결과 확인
+
+> PowerShell 스크립트 실행이 막혀 있는 PC(Windows 기본값)에서도 그대로 동작합니다. 설치기가 **그 창에서만** 스크립트 실행을 허용하고, PC 설정은 바꾸지 않습니다.
 
 **방법 A. PowerShell에 한 줄 붙여넣기 (권장)**
 
@@ -129,6 +135,8 @@ irm https://raw.githubusercontent.com/hdvisionrnd1/vision-dev-kit/main/install.p
 |---|---|
 | Windows 권한 확인 창 ("이 앱이 디바이스를 변경하도록 허용하시겠어요?") | **예** 클릭 |
 | 한동안 화면이 멈춘 것처럼 보임 | 프로그램 설치나 VisionPro help 추출 중입니다. **창을 닫지 말고** 기다리세요 |
+| `==> 5/6  Claude account` 후 브라우저에 Claude 로그인 화면이 열림 | ① Claude 계정으로 로그인 → ② **Authorize**(승인) 클릭 → ③ 브라우저에 **코드**가 나오면 복사해서 PowerShell 창의 `Paste code here` 뒤에 붙여넣고(마우스 오른쪽 클릭 또는 Ctrl + V) **Enter** |
+| 브라우저가 안 열림 | PowerShell 창에 나온 `https://claude.com/...` 주소를 복사해서 브라우저 주소창에 붙여넣으세요 |
 
 > OMC(oh-my-claudecode)가 설치된 PC는 설치기가 **묻지 않고 자동으로 OMC를 끕니다.** 화면 아래 상태 표시줄(HUD)은 그대로 유지됩니다. ([이유](#omcoh-my-claudecode가-설치된-pc))
 
@@ -136,7 +144,7 @@ irm https://raw.githubusercontent.com/hdvisionrnd1/vision-dev-kit/main/install.p
 
 | 마지막 메시지 | 의미 |
 |---|---|
-| 🟢 `DONE. vision-dev is installed.` | 완료입니다. 창을 닫고 **새 PowerShell**에서 `claude`를 실행하세요. 처음이면 로그인 화면이 나옵니다 |
+| 🟢 `DONE. vision-dev is installed.` | 완료입니다. 창을 닫고 **새 PowerShell**에서 `claude`를 실행하세요 |
 | 🟡 `Installed, but please check these items:` | 설치는 됐지만 확인할 항목이 있습니다. 목록의 내용을 [문제 해결](#문제-해결)에서 찾으세요. 대부분 **설치기를 한 번 더 실행**하면 해결됩니다 |
 | 🔴 `[FAIL] ...` 후 중단 | [문제 해결 → 자동 설치기](#자동-설치기)에서 같은 메시지를 찾으세요 |
 
@@ -201,7 +209,15 @@ winget install OpenJS.NodeJS.LTS
 >
 > **새로 설치했다면 PowerShell 창을 닫고 0단계부터 다시 여세요.** 창을 다시 열어야 방금 설치한 프로그램이 인식됩니다.
 
-Claude Code가 없다면 [Claude Code 홈페이지](https://claude.com/claude-code)의 설치 안내를 따라 먼저 설치하세요.
+Claude Code 설치 (없을 때만):
+```powershell
+winget install Anthropic.ClaudeCode
+```
+
+Claude Code를 처음 설치했다면 창을 다시 연 뒤 Claude 계정으로 로그인합니다. 브라우저에 로그인 화면이 열립니다. 코드가 나오면 복사해서 PowerShell 창에 붙여넣고 Enter를 누르세요.
+```powershell
+claude auth login
+```
 
 **.NET SDK 확인 (권장)**: C# 코드 분석 기능(csharp-lsp)에 필요합니다. 결과에 `10.`으로 시작하는 줄이 있으면 됩니다.
 ```powershell
@@ -623,7 +639,21 @@ claude plugin marketplace remove vision-dev-kit
 **`[WARN] PowerShell is running as Administrator.`**
 - 관리자 권한 창에서 실행했습니다. 대부분 그대로 진행되지만, 문제가 생기면 창을 닫고 [0단계](#0단계-powershell-열기)처럼 일반 PowerShell에서 다시 실행하세요.
 
-**5/5 Verify에서 `[FAIL] ... is not installed` 또는 `a plugin failed to load`**
+**`[FAIL] scripts\setup.ps1 could not run`** / **`running scripts is disabled`** / **`스크립트를 실행할 수 없으므로`**
+- 회사 보안 정책(그룹 정책)이 PowerShell 스크립트 실행을 막고 있는 경우입니다. 설치기는 보통 이 제한을 그 창에서만 풀지만, 회사 정책은 풀 수 없습니다.
+- [방법 B (install.bat)](#자동-설치)로 다시 실행해 보세요. 그래도 같으면 IT 담당자에게 문의하세요.
+
+**`[WARN] login was not completed`** / 확인 항목에 `Claude login: ...`
+- 로그인 창을 닫았거나 코드를 붙여넣지 않은 경우입니다. 플러그인 설치는 끝났으니 로그인만 다시 하면 됩니다. 새 PowerShell 창에서 실행하세요.
+```powershell
+claude auth login
+```
+- 로그인했는데 "구독이 필요하다"는 안내가 나오면 무료 계정입니다. Pro 이상 또는 회사 Team 계정으로 로그인하세요.
+
+**`[WARN] Node.js 16 is too old ...`**
+- 오류가 아닙니다. 설치기가 Node.js를 최신 LTS로 올립니다. 그 뒤 `was not detected`가 나오면 창을 새로 열고 설치기를 다시 실행하세요.
+
+**6/6 Verify에서 `[FAIL] ... is not installed` 또는 `a plugin failed to load`**
 - 설치기를 한 번 더 실행하세요. 그래도 같으면 아래 [3단계 (플러그인 설치)](#3단계-플러그인-설치-1)와 [4단계 (설치 확인)](#4단계-설치-확인-1) 항목을 보거나 로그 파일(`%USERPROFILE%\vision-dev-install.log`)을 보내 주세요.
 
 **install.bat을 더블클릭했더니 "Windows의 PC 보호" 창이 뜸**
@@ -641,7 +671,7 @@ claude plugin marketplace remove vision-dev-kit
 | `git` | `winget install Git.Git` |
 | `node`, `npm` | `winget install OpenJS.NodeJS.LTS` |
 | `dotnet` | `winget install Microsoft.DotNet.SDK.10` |
-| `claude` | [Claude Code 홈페이지](https://claude.com/claude-code)의 설치 안내 |
+| `claude` | `winget install Anthropic.ClaudeCode` |
 
 **`winget` 자체가 인식되지 않음**
 - Microsoft Store에서 **"앱 설치 관리자"(App Installer)**를 설치하거나 업데이트하세요.

@@ -8,11 +8,13 @@
   or double-click install.bat.
 
   What it does:
-    1. Installs missing programs with winget (Git, Node.js, Claude Code, .NET 10 SDK, 7-Zip if needed)
+    1. Installs missing programs with winget (Git, Node.js, Claude Code, .NET 10 SDK, 7-Zip if needed),
+       upgrades a too-old Node.js and updates an existing Claude Code
     2. Downloads (or updates) this repository to %USERPROFILE%\vision-dev-kit
     3. Runs scripts\setup.ps1 (ast-grep, csharp-ls, ilspycmd, Cognex help, OMC check)
     4. Registers the plugin marketplaces and installs/updates the vision-dev plugin
-    5. Verifies the result and writes a log to %USERPROFILE%\vision-dev-install.log
+    5. Opens the Claude login page in the browser if this PC is not logged in yet
+    6. Verifies the result and writes a log to %USERPROFILE%\vision-dev-install.log
 
   Options (when running the file directly):
     -Yes          kept for compatibility (the installer no longer asks any questions)
@@ -35,6 +37,16 @@ function Invoke-VisionDevInstall {
     # Native tools write progress to stderr; never let that abort the installer.
     $ErrorActionPreference = "Continue"
     $ProgressPreference = "SilentlyContinue"
+
+    # Windows blocks .ps1 files by default (Restricted). 'irm | iex' itself is allowed, but
+    # scripts\setup.ps1 and npm.ps1 are files, so allow scripts for THIS window only.
+    # Nothing is changed permanently and no administrator rights are needed.
+    try {
+        Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass -Force -ErrorAction Stop
+    }
+    catch {
+        # a company policy (GPO) may forbid this; setup.ps1 then reports the problem below
+    }
 
     $RepoUrl = "https://github.com/hdvisionrnd1/vision-dev-kit.git"
     $Marketplace = "hdvisionrnd1/vision-dev-kit"
@@ -100,6 +112,37 @@ function Invoke-VisionDevInstall {
         return $max
     }
 
+    # Node.js major version (0 = none). The hooks and ast-grep need Node.js 18 or newer.
+    function Get-NodeMajor {
+        if (-not (Test-Cmd node)) {
+            return 0
+        }
+        $ver = "$(& node --version 2>$null)"
+        if ($ver -match '^v(\d+)\.') {
+            return [int]$Matches[1]
+        }
+        return 0
+    }
+
+    # claude.exe (winget) or claude.cmd (npm). Start-Process cannot run claude.ps1.
+    function Get-ClaudeExe {
+        $c = Get-Command claude -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($null -ne $c) {
+            return $c.Source
+        }
+        return "claude"
+    }
+
+    function Test-ClaudeLogin {
+        $raw = (& claude auth status 2>$null) -join "`n"
+        try {
+            return ((ConvertFrom-Json $raw).loggedIn -eq $true)
+        }
+        catch {
+            return $false
+        }
+    }
+
     # Run claude, show its output, return exit code + text
     function Invoke-Claude {
         $text = (& claude @args 2>&1 | ForEach-Object { "$_" }) -join "`n"
@@ -144,7 +187,7 @@ function Invoke-VisionDevInstall {
     }
 
     # ------------------------------------------------------------------
-    Write-Step "1/5  Required programs"
+    Write-Step "1/6  Required programs"
     Update-SessionPath
 
     if (-not (Test-Cmd winget)) {
@@ -162,7 +205,7 @@ function Invoke-VisionDevInstall {
 
     $programs = @(
         @{ Name = "Git"; Id = "Git.Git"; Required = $true; Present = { Test-Cmd git } },
-        @{ Name = "Node.js"; Id = "OpenJS.NodeJS.LTS"; Required = $true; Present = { Test-Cmd node } },
+        @{ Name = "Node.js 18+"; Id = "OpenJS.NodeJS.LTS"; Required = $true; Present = { (Get-NodeMajor) -ge 18 } },
         @{ Name = "Claude Code"; Id = "Anthropic.ClaudeCode"; Required = $true; Present = { Test-Cmd claude } },
         @{ Name = ".NET 10 SDK"; Id = "Microsoft.DotNet.SDK.10"; Required = $false; Present = { (Get-DotnetSdkMajor) -ge 10 } }
     )
@@ -180,10 +223,16 @@ function Invoke-VisionDevInstall {
             if ($p.Required) {
                 $kind = "required"
             }
-            Write-Warn "$($p.Name) is missing ($kind)"
+            if (($p.Id -eq "OpenJS.NodeJS.LTS") -and ((Get-NodeMajor) -gt 0)) {
+                Write-Warn "Node.js $(Get-NodeMajor) is too old (18 or newer is $kind) - it will be upgraded"
+            }
+            else {
+                Write-Warn "$($p.Name) is missing ($kind)"
+            }
             $missing += $p
         }
     }
+    $claudeWasPresent = Test-Cmd claude
 
     if ($missing.Count -gt 0) {
         if ($CheckOnly) {
@@ -226,8 +275,21 @@ function Invoke-VisionDevInstall {
         return $false
     }
 
+    # An old Claude Code may not support plugin dependencies (superpowers, csharp-lsp).
+    if ($claudeWasPresent -and (-not $CheckOnly)) {
+        Write-Host "    updating Claude Code to the latest version ..."
+        $claudePath = (Get-Command claude -ErrorAction SilentlyContinue).Source
+        if ($claudePath -match 'WinGet') {
+            & winget upgrade --id Anthropic.ClaudeCode --exact --source winget --accept-package-agreements --accept-source-agreements | Out-Host
+        }
+        else {
+            & claude update 2>&1 | ForEach-Object { "           $_" } | Out-Host
+        }
+        Write-Ok "Claude Code $((& claude --version 2>$null) -join ' ')"
+    }
+
     # ------------------------------------------------------------------
-    Write-Step "2/5  Download vision-dev-kit"
+    Write-Step "2/6  Download vision-dev-kit"
     $isRepo = Test-Path (Join-Path $InstallDir ".git")
     if ($CheckOnly) {
         if ($isRepo) {
@@ -266,7 +328,7 @@ function Invoke-VisionDevInstall {
     }
 
     # ------------------------------------------------------------------
-    Write-Step "3/5  Prepare this PC (scripts\setup.ps1)"
+    Write-Step "3/6  Prepare this PC (scripts\setup.ps1)"
     if ($CheckOnly) {
         Write-Host "    Would run scripts\setup.ps1"
     }
@@ -278,7 +340,13 @@ function Invoke-VisionDevInstall {
         }
         # Out-Host: show everything setup.ps1 and the tools it runs print. Without it, that output
         # becomes this function's return value and never reaches the screen or the log.
-        & (Join-Path $InstallDir "scripts\setup.ps1") @setupArgs | Out-Host
+        try {
+            & (Join-Path $InstallDir "scripts\setup.ps1") @setupArgs | Out-Host
+        }
+        catch {
+            Write-Fail "scripts\setup.ps1 could not run: $($_.Exception.Message)"
+            $problems.Add("setup.ps1 did not run (ast-grep, csharp-ls are missing). Use install.bat, or ask IT if PowerShell scripts are blocked by company policy")
+        }
         if ($null -ne $global:VisionDevSetupTodo) {
             foreach ($item in $global:VisionDevSetupTodo) {
                 $problems.Add($item)
@@ -287,7 +355,7 @@ function Invoke-VisionDevInstall {
     }
 
     # ------------------------------------------------------------------
-    Write-Step "4/5  Install the Claude Code plugin"
+    Write-Step "4/6  Install the Claude Code plugin"
     if ($CheckOnly) {
         $installed = Get-InstalledPlugins
         $vd = $installed | Where-Object { $_.id -eq $PluginId }
@@ -342,7 +410,38 @@ function Invoke-VisionDevInstall {
     }
 
     # ------------------------------------------------------------------
-    Write-Step "5/5  Verify"
+    Write-Step "5/6  Claude account"
+    $loggedIn = Test-ClaudeLogin
+    if ($loggedIn) {
+        Write-Ok "logged in"
+    }
+    elseif ($CheckOnly) {
+        Write-Warn "not logged in yet (would open the login page)"
+    }
+    else {
+        Write-Host "    This PC is not logged in to Claude yet." -ForegroundColor Yellow
+        Write-Host "    The Claude login page opens in your browser now."
+        Write-Host "      1. Sign in with your Claude account (Pro, Max, Team or Enterprise)."
+        Write-Host "      2. Click 'Authorize'."
+        Write-Host "      3. If the browser shows a code, copy it, come back to this window,"
+        Write-Host "         paste it at 'Paste code here' (right-click or Ctrl+V) and press Enter."
+        Write-Host "    If the browser does not open, copy the address shown below into the browser."
+        Write-Host ""
+        # Start-Process -NoNewWindow: login runs in this window and talks to the user directly.
+        # (& claude ... here would hand its output to this function instead of the screen.)
+        Start-Process -FilePath (Get-ClaudeExe) -ArgumentList @("auth", "login") -NoNewWindow -Wait
+        $loggedIn = Test-ClaudeLogin
+        if ($loggedIn) {
+            Write-Ok "logged in"
+        }
+        else {
+            Write-Warn "login was not completed"
+            $problems.Add("Claude login: open a NEW PowerShell window and run 'claude auth login' (or just 'claude')")
+        }
+    }
+
+    # ------------------------------------------------------------------
+    Write-Step "6/6  Verify"
     $installed = Get-InstalledPlugins
     $allOk = $true
     foreach ($id in $RequiredPlugins) {
@@ -411,7 +510,9 @@ function Invoke-VisionDevInstall {
     Write-Host " Next:"
     Write-Host "   1. Close this window and open a NEW PowerShell window."
     Write-Host "   2. Type:  claude"
-    Write-Host "   3. First time only: log in to Claude when asked."
+    if (-not $loggedIn) {
+        Write-Host "   3. Log in to Claude when asked (Pro, Max, Team or Enterprise account)."
+    }
     Write-Host " If something went wrong, send this file to the person who shared the kit:"
     Write-Host "   $env:USERPROFILE\vision-dev-install.log"
     return ($problems.Count -eq 0)
