@@ -8,11 +8,12 @@
   or double-click install.bat.
 
   What it does:
-    1. Installs missing programs with winget (Git, Node.js, Claude Code, .NET 10 SDK, 7-Zip if needed),
-       upgrades a too-old Node.js and updates an existing Claude Code
+    1. Installs missing programs with winget (Git, Node.js, Claude Code, .NET 10 SDK,
+       Windows Terminal, 7-Zip if needed), upgrades a too-old Node.js and updates an existing Claude Code
     2. Downloads (or updates) this repository to %USERPROFILE%\vision-dev-kit
     3. Runs scripts\setup.ps1 (ast-grep, csharp-ls, ilspycmd, Cognex help, OMC check)
-    4. Registers the plugin marketplaces and installs/updates the vision-dev plugin
+    4. Registers the plugin marketplaces, installs/updates the vision-dev plugin and sets up the
+       OMC HUD status bar (OMC installed but disabled; skip with VISION_DEV_NO_HUD=1)
     5. Opens the Claude login page in the browser if this PC is not logged in yet
     6. Verifies the result and writes a log to %USERPROFILE%\vision-dev-install.log
 
@@ -52,6 +53,8 @@ function Invoke-VisionDevInstall {
     $Marketplace = "hdvisionrnd1/vision-dev-kit"
     $OfficialMarketplace = "anthropics/claude-plugins-official"
     $PluginId = "vision-dev@vision-dev-kit"
+    $OmcMarketplaceUrl = "https://github.com/Yeachan-Heo/oh-my-claudecode.git"
+    $OmcPluginId = "oh-my-claudecode@omc"
     $RequiredPlugins = @("vision-dev@vision-dev-kit", "superpowers@claude-plugins-official", "csharp-lsp@claude-plugins-official")
 
     if ([string]::IsNullOrEmpty($InstallDir)) {
@@ -133,6 +136,117 @@ function Invoke-VisionDevInstall {
         return "claude"
     }
 
+    function Get-ClaudeConfigDir {
+        if (-not [string]::IsNullOrEmpty($env:CLAUDE_CONFIG_DIR)) {
+            return $env:CLAUDE_CONFIG_DIR
+        }
+        return (Join-Path $env:USERPROFILE ".claude")
+    }
+
+    function Get-StatusLineCommand {
+        $settingsPath = Join-Path (Get-ClaudeConfigDir) "settings.json"
+        if (-not (Test-Path $settingsPath)) {
+            return ""
+        }
+        try {
+            $s = Get-Content $settingsPath -Raw -Encoding UTF8 | ConvertFrom-Json
+            if ($null -ne $s.statusLine) {
+                return "$($s.statusLine.command)"
+            }
+        }
+        catch {
+            # unreadable settings: treat as no status line
+        }
+        return ""
+    }
+
+    # "[OMC] HUD v..." = working, "[OMC HUD] ..." = broken (plugin missing / not built)
+    function Test-OmcHud {
+        $hud = Join-Path (Get-ClaudeConfigDir) "hud\omc-hud.mjs"
+        if (-not (Test-Path $hud)) {
+            return $false
+        }
+        $out = ('{}' | & node $hud 2>&1 | ForEach-Object { "$_" }) -join "`n"
+        return ($out -match '\[OMC\] HUD v')
+    }
+
+    function Get-MarketplaceNames {
+        $raw = (& claude plugin marketplace list --json 2>$null) -join "`n"
+        $names = @()
+        try {
+            foreach ($m in (ConvertFrom-Json $raw)) {
+                $names += $m.name
+            }
+        }
+        catch {
+            # none registered
+        }
+        return $names
+    }
+
+    # OMC HUD status bar. The HUD code lives inside the OMC plugin, so OMC is installed
+    # but kept DISABLED (its instructions conflict with Superpowers); only the status bar is used.
+    function Install-OmcHud {
+        $cfg = Get-ClaudeConfigDir
+        $current = Get-StatusLineCommand
+        if ((-not [string]::IsNullOrEmpty($current)) -and ($current -notmatch 'omc-hud')) {
+            Write-Ok "status bar: your own statusLine is kept (OMC HUD not installed)"
+            return
+        }
+        if (($current -match 'omc-hud') -and (Test-OmcHud)) {
+            Write-Ok "status bar: OMC HUD already works"
+            return
+        }
+
+        Write-Host "    status bar: installing OMC HUD (the OMC plugin itself stays disabled)"
+        # Skip 'add' when "omc" is already registered: re-adding from another URL would fail.
+        if ((Get-MarketplaceNames) -notcontains "omc") {
+            $r = Invoke-Claude plugin marketplace add $OmcMarketplaceUrl
+            if (($r.Code -ne 0) -and ($r.Text -notmatch 'already')) {
+                $problems.Add("HUD: could not register the OMC marketplace (see the log)")
+                return
+            }
+        }
+        # Assign first: piping Get-InstalledPlugins directly passes the whole array as ONE item.
+        $installed = Get-InstalledPlugins
+        $omc = $installed | Where-Object { $_.id -eq $OmcPluginId } | Select-Object -First 1
+        if ($null -eq $omc) {
+            Invoke-Claude plugin install $OmcPluginId | Out-Null
+            $installed = Get-InstalledPlugins
+            $omc = $installed | Where-Object { $_.id -eq $OmcPluginId } | Select-Object -First 1
+        }
+        if ($null -eq $omc) {
+            $problems.Add("HUD: could not install $OmcPluginId (see the log)")
+            return
+        }
+        if (($omc.enabled -eq $true) -and ($env:VISION_DEV_KEEP_OMC -ne "1")) {
+            Invoke-Claude plugin disable $OmcPluginId | Out-Null
+        }
+
+        # OMC's own setup script: copies the HUD wrapper, sets statusLine, installs HUD dependencies
+        $setupJs = Join-Path "$($omc.installPath)" "scripts\plugin-setup.mjs"
+        if (-not (Test-Path $setupJs)) {
+            $problems.Add("HUD: $setupJs not found (see the log)")
+            return
+        }
+        & node $setupJs 2>&1 | ForEach-Object { "           $_" } | Out-Host
+
+        # same look as the kit author's PC
+        $hudConfig = Join-Path $cfg ".omc\hud-config.json"
+        if (-not (Test-Path $hudConfig)) {
+            New-Item -ItemType Directory -Force (Split-Path -Parent $hudConfig) | Out-Null
+            [System.IO.File]::WriteAllText($hudConfig, "{`n  `"preset`": `"full`"`n}`n", (New-Object System.Text.UTF8Encoding $false))
+        }
+
+        if (Test-OmcHud) {
+            Write-Ok "status bar: OMC HUD installed"
+        }
+        else {
+            Write-Warn "status bar: OMC HUD does not start"
+            $problems.Add("HUD: the status bar script does not start (see the log)")
+        }
+    }
+
     function Test-ClaudeLogin {
         $raw = (& claude auth status 2>$null) -join "`n"
         try {
@@ -207,7 +321,9 @@ function Invoke-VisionDevInstall {
         @{ Name = "Git"; Id = "Git.Git"; Required = $true; Present = { Test-Cmd git } },
         @{ Name = "Node.js 18+"; Id = "OpenJS.NodeJS.LTS"; Required = $true; Present = { (Get-NodeMajor) -ge 18 } },
         @{ Name = "Claude Code"; Id = "Anthropic.ClaudeCode"; Required = $true; Present = { Test-Cmd claude } },
-        @{ Name = ".NET 10 SDK"; Id = "Microsoft.DotNet.SDK.10"; Required = $false; Present = { (Get-DotnetSdkMajor) -ge 10 } }
+        @{ Name = ".NET 10 SDK"; Id = "Microsoft.DotNet.SDK.10"; Required = $false; Present = { (Get-DotnetSdkMajor) -ge 10 } },
+        # Windows 10 has only the old console: broken symbols/HUD and no "Open in Terminal" on folders.
+        @{ Name = "Windows Terminal"; Id = "Microsoft.WindowsTerminal"; Required = $false; Present = { Test-Cmd wt } }
     )
     if ((Test-Path $vproDir) -and (-not (Test-Path $helpDir))) {
         $programs += @{ Name = "7-Zip (for VisionPro help)"; Id = "7zip.7zip"; Required = $false; Present = { (Test-Path $sevenZip) -or (Test-Cmd 7z) } }
@@ -407,6 +523,13 @@ function Invoke-VisionDevInstall {
             Write-Host "    install: $PluginId"
             Invoke-Claude plugin install $PluginId | Out-Null
         }
+
+        if ($env:VISION_DEV_NO_HUD -eq "1") {
+            Write-Host "    status bar: skipped (VISION_DEV_NO_HUD=1)"
+        }
+        else {
+            Install-OmcHud
+        }
     }
 
     # ------------------------------------------------------------------
@@ -477,6 +600,17 @@ function Invoke-VisionDevInstall {
             }
         }
     }
+    if ((Get-StatusLineCommand) -match 'omc-hud') {
+        if (Test-OmcHud) {
+            Write-Ok "status bar (OMC HUD) works"
+        }
+        else {
+            Write-Warn "status bar (OMC HUD) is configured but does not start"
+        }
+    }
+    elseif ($CheckOnly -and ($env:VISION_DEV_NO_HUD -ne "1") -and [string]::IsNullOrEmpty((Get-StatusLineCommand))) {
+        Write-Warn "status bar (OMC HUD) is not installed (would install)"
+    }
 
     $listText = (& claude plugin list 2>&1 | ForEach-Object { "$_" }) -join "`n"
     if ($listText -match 'failed to load') {
@@ -508,7 +642,14 @@ function Invoke-VisionDevInstall {
     }
     Write-Host "============================================================" -ForegroundColor Cyan
     Write-Host " Next:"
-    Write-Host "   1. Close this window and open a NEW PowerShell window."
+    if (Test-Cmd wt) {
+        Write-Host "   1. Close this window. In File Explorer, right-click your project folder"
+        Write-Host "      -> 'Open in Terminal' (Windows 10: if it is missing, type  wt -d .  in the"
+        Write-Host "      Explorer address bar and press Enter)."
+    }
+    else {
+        Write-Host "   1. Close this window and open a NEW PowerShell window in your project folder."
+    }
     Write-Host "   2. Type:  claude"
     if (-not $loggedIn) {
         Write-Host "   3. Log in to Claude when asked (Pro, Max, Team or Enterprise account)."

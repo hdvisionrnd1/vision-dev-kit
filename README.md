@@ -38,6 +38,7 @@ Matrox MIL, Cognex VisionPro 같은 비전 라이브러리는 API가 방대하�
 | Hook | 팀 규칙 | 세션이 시작될 때 팀 규칙(코드 스타일, TDD 적용 범위, 문서 조회 원칙)을 Claude에게 알려 줌 |
 | 함께 설치 | [Superpowers](https://github.com/obra/superpowers) | 개발 절차 스킬 15개 (브레인스토밍, 계획, TDD, 체계적 디버깅, 코드 리뷰, 완료 전 검증 등) |
 | 함께 설치 | csharp-lsp | C# 언어 서버. 정의로 이동, 참조 찾기, 컴파일 오류 진단 |
+| 함께 설치 | 상태 표시줄 (OMC HUD) | 화면 아래에 사용량·모델·작업 상태 표시. OMC는 **꺼진 상태로** 설치하고 HUD만 씀 ([상태 표시줄](#상태-표시줄-hud)) |
 
 > **vision-dev 하나만 설치하면** Superpowers와 csharp-lsp가 자동으로 함께 설치됩니다. 둘 다 Anthropic 공식 마켓플레이스에 있는 플러그인을 그대로 연결한 것입니다.
 >
@@ -61,7 +62,8 @@ Matrox MIL, Cognex VisionPro 같은 비전 라이브러리는 API가 방대하�
 | **.NET 10 SDK** | 권장 | csharp-ls·ilspycmd 최신 버전이 .NET 10 전용이라 **.NET 8 이하만 있으면 설치가 실패**합니다. `winget install Microsoft.DotNet.SDK.10` (기존 SDK를 지우지 않고 나란히 설치됨) |
 | csharp-ls | csharp-lsp에 필요 | `setup.ps1`이 자동 설치 (`dotnet tool install --global csharp-ls`) |
 | ilspycmd | 선택 | 문서로 부족할 때 DLL 디컴파일. `setup.ps1`이 자동 설치 |
-| oh-my-claudecode(OMC) | ❌ 함께 쓰면 안 됨 | Superpowers와 충돌. 설치되어 있으면 설치기가 **자동으로 끔** (상태 표시줄 HUD는 그대로 유지) ([OMC가 설치된 PC](#omcoh-my-claudecode가-설치된-pc)) |
+| Windows Terminal | 권장 | Windows 10의 기본 창(구형 콘솔)은 기호와 상태 표시줄이 깨지고, 폴더 우클릭 **터미널에서 열기**도 없습니다. 설치기가 자동 설치. `winget install Microsoft.WindowsTerminal` |
+| oh-my-claudecode(OMC) | 꺼진 상태로 설치 | 작업 지침이 Superpowers와 충돌하므로 **켜면 안 됩니다.** 상태 표시줄(HUD)에만 필요해서 설치기가 **설치한 뒤 바로 끕니다.** 이미 켜져 있었다면 자동으로 끕니다 ([OMC가 설치된 PC](#omcoh-my-claudecode가-설치된-pc)) |
 
 MIL이나 VisionPro가 없는 PC에서도 **자동 설치기가 끝까지 정상 진행**됩니다(VisionPro 관련 단계는 건너뜀). 설치 후에는 해당 스킬만 "이 PC에는 설치되어 있지 않습니다"라고 안내하고, 나머지 기능(문서 MCP, 스타일 검사, 팀 규칙, Superpowers, csharp-lsp)은 그대로 동작합니다.
 
@@ -99,18 +101,20 @@ MIL이나 VisionPro가 없는 PC에서도 **자동 설치기가 끝까지 정상
 4. 파란색(또는 검은색) 창이 열리고 `PS C:\Users\사용자이름>`이 보이면 준비된 것입니다.
 
 > Windows 11에서는 시작 버튼을 마우스 오른쪽 클릭 → **터미널**을 눌러도 PowerShell 창이 열립니다. 이때도 "터미널(관리자)"가 아닌 그냥 **터미널**을 고르세요.
+>
+> **Windows 10:** 설치기는 기본 PowerShell 창에서 실행하면 됩니다. 기본 창은 구형 콘솔이라 `✔` 같은 기호가 네모나 물음표로 보일 수 있지만, 설치에는 문제가 없습니다. 설치기가 **Windows Terminal**을 함께 설치하니, 설치가 끝난 뒤 Claude Code는 Windows Terminal에서 쓰세요([Claude Code 실행하기](#claude-code-실행하기)).
 
 ---
 
 ### 자동 설치
 
 설치기가 아래를 **한 번에** 처리합니다.
-1. 빠진 필수 프로그램을 **묻지 않고 자동 설치**: Git, Node.js, Claude Code, .NET 10 SDK, (VisionPro가 있으면) 7-Zip
+1. 빠진 필수 프로그램을 **묻지 않고 자동 설치**: Git, Node.js, Claude Code, .NET 10 SDK, Windows Terminal, (VisionPro가 있으면) 7-Zip
    - Node.js가 17 이하로 오래됐으면 최신 LTS로 올립니다.
    - Claude Code가 이미 있으면 최신 버전으로 업데이트합니다.
 2. vision-dev-kit 내려받기 (`%USERPROFILE%\vision-dev-kit`, 이미 있으면 최신으로 갱신)
 3. PC 준비: ast-grep, csharp-ls 설치, VisionPro help 추출, OMC 확인
-4. 플러그인 설치 (이미 설치되어 있으면 업데이트)
+4. 플러그인 설치 (이미 설치되어 있으면 업데이트) + 상태 표시줄(OMC HUD) 설정
 5. **Claude 계정 연결**: 아직 로그인하지 않은 PC면 브라우저에 로그인 화면을 띄웁니다
 6. 설치 결과 확인
 
@@ -138,7 +142,7 @@ irm https://raw.githubusercontent.com/hdvisionrnd1/vision-dev-kit/main/install.p
 | `==> 5/6  Claude account` 후 브라우저에 Claude 로그인 화면이 열림 | ① Claude 계정으로 로그인 → ② **Authorize**(승인) 클릭 → ③ 브라우저에 **코드**가 나오면 복사해서 PowerShell 창의 `Paste code here` 뒤에 붙여넣고(마우스 오른쪽 클릭 또는 Ctrl + V) **Enter** |
 | 브라우저가 안 열림 | PowerShell 창에 나온 `https://claude.com/...` 주소를 복사해서 브라우저 주소창에 붙여넣으세요 |
 
-> OMC(oh-my-claudecode)가 설치된 PC는 설치기가 **묻지 않고 자동으로 OMC를 끕니다.** 화면 아래 상태 표시줄(HUD)은 그대로 유지됩니다. ([이유](#omcoh-my-claudecode가-설치된-pc))
+> OMC(oh-my-claudecode)는 상태 표시줄(HUD) 때문에 설치하지만 **꺼진 상태로** 둡니다. 이미 OMC를 켜 두고 쓰던 PC도 설치기가 **묻지 않고 자동으로 끕니다.** HUD는 OMC가 꺼져 있어도 동작합니다. ([이유](#omcoh-my-claudecode가-설치된-pc))
 
 **끝났을 때 화면 맨 아래를 확인하세요**
 
@@ -291,6 +295,8 @@ claude plugin install vision-dev@vision-dev-kit
 ```
 
 > Claude Code 안에서 설치하고 싶다면 위 세 명령의 `claude plugin`을 `/plugin`으로 바꿔서 한 줄씩 입력해도 됩니다.
+>
+> 상태 표시줄(HUD)은 수동 설치에 포함되지 않습니다. HUD도 쓰려면 수동 설치를 마친 뒤 [자동 설치기](#자동-설치)를 한 번 실행하세요. 이미 된 단계는 건너뛰고 HUD만 설정합니다.
 
 ---
 
@@ -315,10 +321,7 @@ claude mcp list
 
 ### 5단계. Claude Code 다시 시작
 
-이미 Claude Code를 켜 두었다면 `/exit`를 입력해 종료하거나 창을 닫으세요. 그다음 아래 명령으로 다시 실행합니다. 다시 시작해야 플러그인이 적용됩니다.
-```powershell
-claude
-```
+이미 Claude Code를 켜 두었다면 `/exit`를 입력해 종료하거나 창을 닫으세요. 그다음 [Claude Code 실행하기](#claude-code-실행하기)를 따라 다시 실행합니다. 다시 시작해야 플러그인이 적용됩니다.
 
 설치가 끝났습니다. 어떻게 쓰는지는 [사용 방법](#사용-방법)을 보세요.
 
@@ -326,7 +329,28 @@ claude
 
 ## 사용 방법
 
-평소처럼 요청하면 Claude가 필요한 스킬과 MCP를 알아서 사용합니다.
+### Claude Code 실행하기
+
+Claude Code는 **작업할 프로젝트 폴더에서** 실행합니다. 화면이 깨지지 않도록 **Windows Terminal**에서 쓰세요. 설치기가 Windows Terminal도 설치합니다.
+
+1. 파일 탐색기에서 프로젝트 폴더(`.sln`이 있는 폴더)를 엽니다.
+2. 폴더 안의 빈 곳을 **마우스 오른쪽 클릭** → **터미널에서 열기**를 누릅니다.
+   - Windows 11에서 메뉴에 없으면 **추가 옵션 표시**를 누르면 보입니다.
+   - **Windows 10에서 메뉴에 없으면**: 탐색기 위쪽 **주소창**을 클릭하고, 아래를 입력한 뒤 Enter를 누릅니다. 그 폴더에서 Windows Terminal이 열립니다.
+     ```
+     wt -d .
+     ```
+3. 열린 창에 아래를 입력하고 Enter를 누릅니다.
+```powershell
+claude
+```
+
+> 처음 실행하면 "이 폴더를 신뢰하는지(trust)" 묻습니다. 내 프로젝트 폴더라면 **Yes**를 고르세요.
+>
+> 화면 아래에 사용량·모델·작업 상태가 나오는 **상태 표시줄(HUD)**이 보이면 정상입니다([상태 표시줄](#상태-표시줄-hud)).
+
+### 요청하기
+Claude Code가 열리면 평소처럼 요청하면 Claude가 필요한 스킬과 MCP를 알아서 사용합니다.
 
 ### 요청 예시
 
@@ -480,6 +504,19 @@ Superpowers는 원래 "TDD 예외는 매번 사용자에게 허락받으라"고 
 두 플러그인은 vision-dev의 **의존성**으로 연결되어 있습니다. 원본 플러그인을 그대로 설치하는 것이라 업데이트도 각 원본에서 받습니다.
 
 > ⚠️ Superpowers는 "어떻게 작업할지"를 정하는 플러그인입니다. **oh-my-claudecode 같은 다른 작업 절차 플러그인과 함께 켜면 지침이 충돌**합니다. 쓰고 있었다면 [OMC가 설치된 PC](#omcoh-my-claudecode가-설치된-pc)를 따라 꺼 주세요.
+
+### 상태 표시줄 (HUD)
+
+Claude Code 화면 맨 아래에 사용량, 모델, 컨텍스트 사용률, 작업 상태를 보여 주는 줄입니다. [oh-my-claudecode(OMC)](https://github.com/Yeachan-Heo/oh-my-claudecode)의 HUD를 씁니다.
+
+- HUD 코드가 OMC 플러그인 안에 있어서 설치기가 OMC를 **설치하고 바로 끕니다.** 꺼져 있으면 OMC의 작업 지침은 적용되지 않고 HUD만 동작합니다.
+- 설치기가 하는 일: OMC 마켓플레이스 등록 → `oh-my-claudecode@omc` 설치 → 끄기 → OMC의 HUD 설정 스크립트 실행 → 표시 형식 `full`로 설정
+- 표시 형식 파일은 `%USERPROFILE%\.claude\.omc\hud-config.json`입니다. 이미 있으면 바꾸지 않습니다.
+- 이미 **다른 상태 표시줄**(`settings.json`의 `statusLine`)을 쓰고 있으면 건드리지 않습니다.
+- 설치하지 않으려면 설치기를 실행하기 전에 아래를 먼저 실행하세요.
+```powershell
+$env:VISION_DEV_NO_HUD = "1"
+```
 
 ---
 
@@ -830,6 +867,22 @@ npm i -g @ast-grep/cli
 - `VISION_DEV_TEAM_RULES`가 `off`로 설정되어 있지 않은지 확인하세요.
 - OMC 같은 다른 작업 절차 플러그인이 켜져 있으면 끄세요 (`claude plugin list`로 확인).
 
+**화면 아래 상태 표시줄(HUD)이 안 보임** / **`[OMC HUD] Plugin not installed`**
+- 설치기를 한 번 더 실행하세요. 마지막 확인 단계에 `[OK] status bar (OMC HUD) works`가 나오면 정상입니다.
+- 설치기에 `status bar: your own statusLine is kept`가 나왔다면 이미 다른 상태 표시줄이 설정된 PC입니다. 설치기는 그 설정을 바꾸지 않습니다.
+- OMC를 `claude plugin uninstall`로 지웠다면 HUD도 함께 사라집니다. 설치기를 다시 실행하면 OMC를 꺼진 상태로 다시 설치합니다.
+
+**글자가 깨지거나 `✔`, 상태 표시줄 기호가 네모·물음표로 보임** (주로 Windows 10)
+- 구형 콘솔(파란 Windows PowerShell 창)에서 실행한 경우입니다. **Windows Terminal**에서 실행하세요([Claude Code 실행하기](#claude-code-실행하기)).
+- Windows Terminal이 없으면 아래 명령으로 설치합니다.
+```powershell
+winget install Microsoft.WindowsTerminal
+```
+
+**폴더에서 마우스 오른쪽 클릭해도 `터미널에서 열기`가 없음** (Windows 10)
+- Windows Terminal을 설치하면 메뉴가 생깁니다(위 명령). 설치 직후에는 탐색기 창을 모두 닫았다가 다시 여세요.
+- 메뉴 없이 여는 방법: 탐색기에서 그 폴더를 연 상태로 위쪽 **주소창**을 클릭하고 `wt -d .`을 입력한 뒤 Enter를 누르세요.
+
 **스킬이 안 보이거나 자동으로 불리지 않음**
 - Claude Code를 재시작했는지 확인하세요.
 - `claude plugin details vision-dev@vision-dev-kit`로 설치 상태를 확인하세요.
@@ -899,6 +952,7 @@ claude plugin enable oh-my-claudecode@omc
 그다음 CLAUDE.md를 백업 파일로 되돌리세요. 이 상태에서는 Superpowers와 다시 충돌하므로, OMC를 계속 쓸 거라면 vision-dev를 제거하는 것이 좋습니다([제거](#제거) 참고).
 
 > 참고: OMC를 꺼도 화면 아래 상태 표시줄(HUD)은 그대로 동작합니다. HUD는 Claude Code 설정(`statusLine`)에서 따로 실행되는 표시 기능이라 OMC 플러그인이 꺼져 있어도 상관없습니다.
+> 다만 HUD 코드는 OMC 플러그인 폴더 안에 있으므로 **OMC를 제거(uninstall)하면 HUD도 사라집니다.** 끄기(disable)만 하세요.
 
 ---
 
