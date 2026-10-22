@@ -7,6 +7,11 @@
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/team-rules/inject.mjs\"",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/usage/fetch-usage.mjs\"",
+            "timeout": 5
           }
         ]
       }
@@ -32,6 +37,17 @@
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/cs-style/check.mjs\"",
             "timeout": 30,
             "statusMessage": "C# 코드 스타일 검사"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/usage/fetch-usage.mjs\"",
+            "timeout": 5
           }
         ]
       }

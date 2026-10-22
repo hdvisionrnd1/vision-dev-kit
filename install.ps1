@@ -273,12 +273,12 @@ function Invoke-VisionDevInstall {
             return
         }
 
-        # Team default: also show tools, skills, agents, todos and session time
+        # Team defaults (scripts\hud-defaults.mjs): tools/skills/agents/todos/session time, effort next to the
+        # model, full project path, labelled 5h/7d usage plus Fable (written by the vision-dev usage hook).
+        # Only missing keys are added, so settings a user changed with /claude-hud:configure are kept.
         $hudConfig = Join-Path $cfg "plugins\claude-hud\config.json"
-        if (-not (Test-Path $hudConfig)) {
-            $json = "{`n  `"display`": {`n    `"showTools`": true,`n    `"showSkills`": true,`n    `"showAgents`": true,`n    `"showTodos`": true,`n    `"showDuration`": true`n  }`n}`n"
-            [System.IO.File]::WriteAllText($hudConfig, $json, (New-Object System.Text.UTF8Encoding $false))
-        }
+        $merged = (& node (Join-Path $InstallDir "scripts\hud-defaults.mjs") $hudConfig 2>&1 | ForEach-Object { "$_" }) -join " "
+        Write-Host "    status bar settings: $merged"
 
         if ((Get-ClaudeHudSample).Trim().Length -gt 0) {
             Write-Ok "status bar: claude-hud $($hud.version) ($shell)"

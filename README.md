@@ -42,7 +42,7 @@ Matrox MIL, Cognex VisionPro 같은 비전 라이브러리는 API가 방대하�
 | 함께 설치 | csharp-lsp | C# 언어 서버. 정의로 이동, 참조 찾기, 컴파일 오류 진단 |
 | 함께 설치 | [REA](https://github.com/morluto/rea) (MCP `rea` + 스킬 `reverse-engineer-anything`) | 프로그램(exe/dll) 역분석. .NET DLL의 클래스·메서드 구조 확인, 네이티브 코드 디컴파일, 버전 간 비교 ([REA](#rea-역분석)) |
 | 함께 설치 | Ghidra 12.1.4 + JDK 21 | REA가 네이티브(C/C++) 코드를 디컴파일할 때 쓰는 분석 엔진 (디스크 약 1GB) |
-| 함께 설치 | 상태 표시줄 ([claude-hud](https://github.com/jarrodwatts/claude-hud)) | 화면 아래에 컨텍스트·사용량·도구·스킬·할 일 진행 표시 ([상태 표시줄](#상태-표시줄-hud)) |
+| 함께 설치 | 상태 표시줄 ([claude-hud](https://github.com/jarrodwatts/claude-hud)) | 화면 아래에 모델·추론 강도·폴더, 컨텍스트, 사용량(5시간·주간·Fable), 도구·스킬·할 일 진행 표시 ([상태 표시줄](#상태-표시줄-hud)) |
 
 > **vision-dev 하나만 설치하면** Superpowers와 csharp-lsp가 자동으로 함께 설치됩니다. 둘 다 Anthropic 공식 마켓플레이스에 있는 플러그인을 그대로 연결한 것입니다.
 >
@@ -528,19 +528,23 @@ csharp-lsp는 구형 .NET Framework 4.8 프로젝트(MIL 참조 포함)에서도
 
 ### 상태 표시줄 (HUD)
 
-Claude Code 화면 맨 아래에 작업 상태를 보여 주는 줄입니다. [claude-hud](https://github.com/jarrodwatts/claude-hud)(MIT, ★28k) 플러그인을 씁니다. 인터넷 통신 없이 PC 안에서만 동작합니다.
+Claude Code 화면 맨 아래에 작업 상태를 보여 주는 줄입니다. [claude-hud](https://github.com/jarrodwatts/claude-hud)(MIT, ★28k) 플러그인을 씁니다.
 
 ```
-[Opus] │ MyVisionApp git:(main*)
-Context █████░░░░░ 45% │ Usage ██░░░░░░░░ 25% (resets in 1h 30m)
+[Opus ◑ high] │ D:/Project/MyVisionApp git:(main*) │ ⏱️ 56m
+Context █████░░░░░ 45% │ 5h: 25% (1h 30m) | 7d: 9% (3d 23h) | Fable: 10% (3d 23h)
 ◐ Edit: Inspector.cs | ✓ Read ×3 | ✓ Grep ×2      ← 지금 쓰는 도구
 ◐ vision-dev:mil-lookup                           ← 불러온 스킬
 ▸ 블롭 판정 로직 테스트 작성 (2/5)                  ← 할 일 진행
 ```
 
+- **첫 줄**: 모델과 추론 강도(`◑ high`), 세션을 연 폴더(전체 경로), git 브랜치, 세션 시간입니다.
 - **Context**: 대화가 차지한 비율입니다. 빨간색에 가까워지면 `/compact`로 줄이거나 새 세션을 여세요.
-- **Usage**: 구독 사용량과 초기화까지 남은 시간입니다.
-- 팀 기본값으로 **도구, 스킬, 에이전트, 할 일, 세션 시간**을 함께 표시합니다. 설정 파일은 `%USERPROFILE%\.claude\plugins\claude-hud\config.json`이고, 이미 있으면 바꾸지 않습니다.
+- **5h / 7d / Fable**: 5시간 사용량, 주간 사용량, Fable 주간 사용량과 각각 초기화까지 남은 시간입니다.
+  - 5h와 7d는 Claude Code가 직접 알려 줍니다(첫 응답 이후 표시).
+  - Fable 같은 모델별 사용량은 Claude Code가 상태 표시줄에 넘겨주지 않습니다. 그래서 vision-dev Hook이 세션 시작과 메시지 입력 때(3분에 한 번까지) Anthropic 사용량 API를 로그인 토큰으로 조회해 `%USERPROFILE%\.claude\cache\vision-dev\usage-snapshot.json`에 저장합니다. 토큰은 Anthropic 서버에만 보냅니다. 끄려면 settings.json의 `"env"`에 `"VISION_DEV_USAGE_FETCH": "off"`를 넣으세요.
+- 팀 기본값: 도구, 스킬, 에이전트, 할 일, 세션 시간, 추론 강도, 전체 경로, 이름표가 붙은 사용량(5h·7d·Fable). 설정 파일은 `%USERPROFILE%\.claude\plugins\claude-hud\config.json`입니다. 설치기는 **없는 항목만 추가**하므로 직접 바꾼 설정은 그대로 남습니다.
+- 경로가 너무 길면 `"pathLevels": 2`(폴더 2단계)로 줄일 수 있습니다.
 - 표시 항목을 바꾸려면 Claude Code에서 `/claude-hud:configure`를 실행하거나 "HUD를 한 줄로 줄여줘"처럼 말하면 됩니다.
 - 설치기가 하는 일: claude-hud 마켓플레이스 등록 → `claude-hud@claude-hud` 설치 → claude-hud의 설정 도우미 실행(`settings.json`을 백업한 뒤 `statusLine`만 바꿈)
 - **OMC HUD를 쓰던 PC**는 claude-hud로 바꿉니다. 원래 설정은 `settings.json.bak.날짜`와 `plugins\claude-hud\previous-statusline.txt`에 남습니다.
