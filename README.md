@@ -32,12 +32,16 @@ Matrox MIL, Cognex VisionPro 같은 비전 라이브러리는 API가 방대하�
 |---|---|---|
 | 스킬 | `vision-dev:mil-lookup` | Matrox MIL 함수(`MbufAlloc2d`, `MdigProcess` 등)를 로컬 문서, MIL.NET XML, C# 예제에서 조회 |
 | 스킬 | `vision-dev:visionpro-lookup` | Cognex VisionPro 클래스(`CogBlobTool`, `CogPMAlignTool` 등)를 IntelliSense XML, help, 샘플에서 조회 |
+| 스킬 | `vision-dev:build-check` | 솔루션을 빌드하고 오류·경고를 요약. exe가 32비트/64비트 중 무엇으로 실행되는지도 확인 |
 | MCP | `mslearn` | Microsoft Learn 공식 문서 검색 (WPF, WinForms, .NET, C#) |
 | MCP | `context7` | 오픈소스 라이브러리 문서 검색 (CommunityToolkit.Mvvm, OpenCvSharp, ScottPlot, NModbus 등) |
 | Hook | C# 스타일 검사 | `.cs` 수정 시 삼항연산자 `? :`, 중괄호 없는 `if`/`else`를 찾아 블록 형태로 고치게 함 |
+| 템플릿 | 팀 `.editorconfig` | 솔루션 폴더에 두면 Visual Studio에서 사람이 짠 코드도 중괄호 없는 if를 경고 ([팀 .editorconfig](#팀-editorconfig)) |
 | Hook | 팀 규칙 | 세션이 시작될 때 팀 규칙(코드 스타일, TDD 적용 범위, 문서 조회 원칙)을 Claude에게 알려 줌 |
 | 함께 설치 | [Superpowers](https://github.com/obra/superpowers) | 개발 절차 스킬 15개 (브레인스토밍, 계획, TDD, 체계적 디버깅, 코드 리뷰, 완료 전 검증 등) |
 | 함께 설치 | csharp-lsp | C# 언어 서버. 정의로 이동, 참조 찾기, 컴파일 오류 진단 |
+| 함께 설치 | [REA](https://github.com/morluto/rea) (MCP `rea` + 스킬 `reverse-engineer-anything`) | 프로그램(exe/dll) 역분석. .NET DLL의 클래스·메서드 구조 확인, 네이티브 코드 디컴파일, 버전 간 비교 ([REA](#rea-역분석)) |
+| 함께 설치 | Ghidra 12.1.4 + JDK 21 | REA가 네이티브(C/C++) 코드를 디컴파일할 때 쓰는 분석 엔진 (디스크 약 1GB) |
 | 함께 설치 | 상태 표시줄 ([claude-hud](https://github.com/jarrodwatts/claude-hud)) | 화면 아래에 컨텍스트·사용량·도구·스킬·할 일 진행 표시 ([상태 표시줄](#상태-표시줄-hud)) |
 
 > **vision-dev 하나만 설치하면** Superpowers와 csharp-lsp가 자동으로 함께 설치됩니다. 둘 다 Anthropic 공식 마켓플레이스에 있는 플러그인을 그대로 연결한 것입니다.
@@ -114,7 +118,7 @@ MIL이나 VisionPro가 없는 PC에서도 **자동 설치기가 끝까지 정상
    - Claude Code가 이미 있으면 최신 버전으로 업데이트합니다.
 2. vision-dev-kit 내려받기 (`%USERPROFILE%\vision-dev-kit`, 이미 있으면 최신으로 갱신)
 3. PC 준비: ast-grep, csharp-ls 설치, VisionPro help 추출, OMC 확인
-4. 플러그인 설치 (이미 설치되어 있으면 업데이트) + 상태 표시줄(claude-hud) 설정
+4. 플러그인 설치 (이미 설치되어 있으면 업데이트) + 상태 표시줄(claude-hud) 설정 + REA·Ghidra 설치
 5. **Claude 계정 연결**: 아직 로그인하지 않은 PC면 브라우저에 로그인 화면을 띄웁니다
 6. 설치 결과 확인
 
@@ -263,7 +267,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1
 3. csharp-ls 설치 (.NET 10 SDK가 있을 때만)
 4. ilspycmd 설치 (.NET 10 SDK가 있을 때만, `-SkipIlspy`로 생략 가능)
 5. VisionPro가 설치되어 있으면 help를 HTML로 추출 (`-SkipCognexHelp`로 생략 가능)
-6. **oh-my-claudecode(OMC)가 켜져 있으면 자동으로 끕니다.** CLAUDE.md의 OMC 지침은 백업한 뒤 정리하고, 상태 표시줄(HUD)은 그대로 둡니다. ([자세히](#omcoh-my-claudecode가-설치된-pc))
+6. **oh-my-claudecode(OMC)가 켜져 있으면 자동으로 끕니다.** CLAUDE.md의 OMC 지침은 백업한 뒤 정리합니다. 상태 표시줄(HUD)은 이 단계에서 바꾸지 않습니다(수동 설치에서는 OMC HUD가 그대로 동작). ([자세히](#omcoh-my-claudecode가-설치된-pc))
 
 끝났을 때 화면 맨 아래를 확인하세요.
 - 초록색 `Setup finished.` → 모두 정상입니다. 3단계로 넘어가세요.
@@ -391,6 +395,7 @@ PLC 통신이 가끔 끊기는데 원인 찾아줘
 ```
 /vision-dev:mil-lookup
 /vision-dev:visionpro-lookup
+/vision-dev:build-check
 /superpowers:brainstorming
 /superpowers:systematic-debugging
 ```
@@ -471,11 +476,24 @@ string s = "a ? b : c";             // 문자열 안의 ?
 |---|---|
 | `Edit` (부분 수정) | **이번에 수정한 줄만** 검사합니다. 기존 레거시 코드의 위반은 건드리지 않습니다. |
 | `Write` (파일 전체 작성) | 파일 전체를 검사합니다. |
+| Bash·PowerShell 명령으로 수정 (`sed -i`, `Set-Content` 등) | 명령에 나온 `.cs` 파일 중 방금 바뀐 파일에서 **git 기준으로 바뀐 줄만** 검사합니다. git에 아직 없는 새 파일은 전체를 검사하고, git 저장소가 아니면 건너뜁니다. 읽기만 하는 명령(`grep`, `cat` 등)은 검사하지 않습니다. |
 | 자동 생성 파일 | 검사하지 않습니다: `*.Designer.cs`, `*.g.cs`, `*.g.i.cs`, `AssemblyInfo.cs`, `obj/`, `bin/` |
 
-> Claude가 수정한 코드만 검사합니다. Visual Studio에서 사람이 직접 고친 코드는 검사하지 않습니다.
+> Claude가 수정한 코드만 검사합니다. Visual Studio에서 사람이 직접 고친 코드는 검사하지 않습니다. 사람이 짠 코드도 Visual Studio에서 경고를 받으려면 [팀 .editorconfig](#팀-editorconfig)를 쓰세요.
 
 규칙 정의 파일은 `plugins/vision-dev/hooks/cs-style/rules.yml`입니다.
+
+### `build-check`: 빌드 확인
+C# 코드를 고친 뒤 완료를 보고하기 전에 Claude가 이 스킬로 빌드합니다. "빌드해 봐"라고 말해도 됩니다.
+
+| 하는 일 | 설명 |
+|---|---|
+| 빌드 도구 선택 | 구형(.NET Framework) 프로젝트는 Visual Studio의 MSBuild, 신형(SDK 스타일)은 `dotnet build`. VS에서 빌드하는 것과 같은 결과가 나옵니다 |
+| 플랫폼 | 따로 말하지 않으면 x64 구성이 있을 때 x64로 빌드합니다. "Release로 빌드해", "Any CPU로 빌드해"처럼 바꿀 수 있습니다 |
+| 결과 요약 | 오류는 전부, 경고는 코드별 개수만 보여 줍니다 |
+| 실행 비트 확인 | 결과 exe/dll이 실제로 32비트와 64비트 중 무엇으로 실행되는지 표시합니다. **AnyCPU + 32비트 우선**으로 빌드된 exe가 64비트 전용 MIL/VisionPro 참조를 쓰면 `실행 시 실패 위험`으로 알려 줍니다 |
+
+> 빌드한 exe는 실행하지 않습니다. 장비 프로그램은 실행만으로 카메라·모터가 움직일 수 있어서, 실행 확인은 사람이 합니다.
 
 ### 팀 규칙
 
@@ -488,6 +506,7 @@ string s = "a ? b : c";             // 문자열 안의 ?
 | TDD 제외 (미리 허락) | UI(Designer, XAML), 카메라 Grab·MIL/VisionPro 초기화, 모터·IO·PLC 실제 입출력, 자동 생성 코드, 실험 코드 |
 | 섞여 있을 때 | 장비·UI 코드 속의 판단 로직은 별도 클래스로 분리해 TDD로 작성. 장비는 `ICamera`, `IPlc` 같은 인터페이스로 감싸 가짜 구현으로 테스트 |
 | 테스트 환경 | 기존 테스트 프레임워크(xUnit/NUnit/MSTest)를 따름. 테스트 프로젝트가 없으면 만들기 전에 먼저 물어봄 |
+| 코드 수정 절차 | 기능 추가·여러 파일 수정·구조 변경은 **Opus가 계획 → Fable이 검토 → Opus가 고침 → HTML로 정리(`docs/plans/`) → 사용자 허락 → 구현** 순서. 오타·한두 줄 수정·정확히 지시한 변경은 바로 진행. Fable을 못 쓰는 계정은 Opus가 대신 검토하고 그 사실을 계획서에 적음 |
 | 문서 조회 | MIL·VisionPro API는 추측하지 않고 vision-dev 스킬로 확인 |
 
 Superpowers는 원래 "TDD 예외는 매번 사용자에게 허락받으라"고 되어 있습니다. 팀 규칙이 **"UI·장비 코드는 미리 허락된 예외"**라고 알려 주기 때문에 매번 묻지 않고 바로 진행합니다.
@@ -500,6 +519,8 @@ Superpowers는 원래 "TDD 예외는 매번 사용자에게 허락받으라"고 
 |---|---|---|
 | `superpowers` | Anthropic 공식 마켓플레이스 ([원본](https://github.com/obra/superpowers)) | 개발 절차 스킬. 상황에 맞는 스킬을 Claude가 알아서 고름 |
 | `csharp-lsp` | Anthropic 공식 마켓플레이스 | `csharp-ls` 언어 서버를 연결해 C# 코드 분석 정확도를 높임 |
+
+csharp-lsp는 구형 .NET Framework 4.8 프로젝트(MIL 참조 포함)에서도 동작하는 것을 확인했습니다. 솔루션 폴더에서 열어도, 그 상위 폴더에서 열어도 됩니다. 단, .NET Framework 참조 어셈블리가 필요하므로 Visual Studio가 설치된 PC여야 합니다.
 
 두 플러그인은 vision-dev의 **의존성**으로 연결되어 있습니다. 원본 플러그인을 그대로 설치하는 것이라 업데이트도 각 원본에서 받습니다.
 
@@ -527,6 +548,26 @@ Context █████░░░░░ 45% │ Usage ██░░░░░░░
 - 설치하지 않으려면 설치기를 실행하기 전에 아래를 먼저 실행하세요.
 ```powershell
 $env:VISION_DEV_NO_HUD = "1"
+```
+
+### REA (역분석)
+소스가 없는 프로그램(exe/dll)을 분석하는 도구입니다. 장비 업체 DLL의 함수 구조를 확인하거나, 두 버전의 차이를 비교할 때 씁니다. Claude에게 "이 DLL 안에 어떤 클래스가 있는지 봐줘"처럼 요청하면 됩니다.
+
+| 대상 | 필요한 것 |
+|---|---|
+| .NET DLL/exe (C#, VB) | REA만 있으면 됨 |
+| 네이티브 DLL/exe (C/C++) 디컴파일 | Ghidra + JDK 21 (설치기가 함께 설치) |
+
+- 설치기는 REA 자체 설치 명령(`npx -y rea-agents@6.5.0 setup --client claude_code --yes`)으로 MCP 서버를 `%USERPROFILE%\.claude.json`에 등록하고 스킬을 `%USERPROFILE%\.claude\skills`에 넣습니다. 이미 설치돼 있으면 건너뜁니다.
+- Ghidra는 GitHub 공식 릴리스(약 570MB)를 받아 SHA-256을 확인한 뒤 `%LOCALAPPDATA%\Programs\Ghidra`에 풉니다. JDK 21이 없으면 `winget install Microsoft.OpenJDK.21`로 설치합니다. 사용자 환경변수 `GHIDRA_INSTALL_DIR`, `JAVA_HOME`을 설정합니다.
+- Ghidra만 따로 설치하려면: `powershell -ExecutionPolicy Bypass -File "$env:USERPROFILE\vision-dev-kit\scripts\install-ghidra.ps1"`
+- 설치하지 않으려면 설치기를 실행하기 전에 아래를 먼저 실행하세요.
+```powershell
+$env:VISION_DEV_NO_REA = "1"
+```
+REA는 설치하되 Ghidra(약 1GB)만 빼려면:
+```powershell
+$env:VISION_DEV_NO_GHIDRA = "1"
 ```
 
 ---
@@ -578,6 +619,23 @@ $env:VISION_DEV_NO_HUD = "1"
 | `COGNEX_HELP_DIR` | `%USERPROFILE%\.claude\tools\cognex-doc\VisionPro\html` | 추출한 VisionPro help 폴더 |
 | `VISIONPRO_DIR` | `C:\Program Files\Cognex\VisionPro` | VisionPro 설치 폴더 (다른 드라이브에 설치한 경우) |
 | `AST_GREP_PATH` | npm 전역 설치 위치, 없으면 PATH 검색 | ast-grep 실행 파일 |
+
+### 팀 .editorconfig
+스타일 Hook은 Claude가 고친 코드만 검사합니다. 사람이 Visual Studio에서 짠 코드도 같은 규칙으로 경고를 받으려면 팀 `.editorconfig`를 **솔루션(.sln) 폴더**에 복사하세요.
+
+```powershell
+copy "$env:USERPROFILE\vision-dev-kit\plugins\vision-dev\templates\.editorconfig" .
+```
+(솔루션 폴더에서 PowerShell을 열고 실행합니다. 자동 설치기를 쓰지 않았다면 vision-dev-kit을 내려받은 위치로 바꾸세요)
+
+| 설정 | 효과 |
+|---|---|
+| `csharp_prefer_braces = true` (IDE0011) | 중괄호 없는 `if`/`else`에 경고. `for`/`while` 같은 반복문에도 적용됩니다 |
+| `dotnet_style_prefer_conditional_expression_* = false` (IDE0045, IDE0046) | Visual Studio가 if/else를 삼항연산자로 바꾸자고 제안하지 않음 |
+
+- 이미 `.editorconfig`가 있으면 덮어쓰지 말고 템플릿의 `[*.cs]` 부분만 기존 파일에 붙여 넣으세요.
+- 삼항연산자 자체를 금지하는 규칙은 Visual Studio 기본 분석기에 없습니다. 이 부분은 스타일 Hook이 맡습니다.
+- Claude는 **새 솔루션을 만들 때** 이 파일을 자동으로 넣고, 기존 솔루션에는 넣기 전에 먼저 물어봅니다.
 
 ### 문서 읽기 권한 (선택)
 Claude가 문서를 읽을 때마다 권한 확인 창이 뜨는 게 번거롭다면 `%USERPROFILE%\.claude\settings.json`의 `permissions.allow`에 추가하세요.
@@ -646,6 +704,8 @@ claude plugin marketplace remove vision-dev-kit
 - 색인: `%USERPROFILE%\.claude\cache\vision-dev`
 - ast-grep: `npm uninstall -g @ast-grep/cli`
 - csharp-ls: `dotnet tool uninstall --global csharp-ls`
+- REA: `npx -y rea-agents@6.5.0 uninstall`
+- Ghidra: `%LOCALAPPDATA%\Programs\Ghidra` 폴더를 지우고, 사용자 환경변수 `GHIDRA_INSTALL_DIR`를 삭제
 
 ---
 
@@ -793,7 +853,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\extract-cognex-help.ps1 -ChmP
 - 영어가 아닌 help를 추출하려면 `-Lang ja` 또는 `-Lang zh-Hans`를 붙이세요.
 
 **setup 화면: `oh-my-claudecode (OMC) found` ... `turned off automatically`**
-- 오류가 아닙니다. Superpowers와 충돌하는 OMC를 자동으로 끈 것입니다. 상태 표시줄(HUD)은 그대로 유지됩니다. 자세한 내용은 [OMC가 설치된 PC](#omcoh-my-claudecode가-설치된-pc)를 보세요.
+- 오류가 아닙니다. Superpowers와 충돌하는 OMC를 자동으로 끈 것입니다. setup 단계에서는 상태 표시줄(HUD)을 바꾸지 않고, 자동 설치기라면 다음 단계(4/6)에서 OMC HUD를 claude-hud로 바꿉니다. 자세한 내용은 [OMC가 설치된 PC](#omcoh-my-claudecode가-설치된-pc)를 보세요.
 
 **setup 화면 마지막: `Setup finished, but these steps need attention:`** (노란 글씨)
 - 바로 아래 목록에 처리할 항목이 나옵니다. 위 항목들에서 같은 내용을 찾아 해결하고, setup을 다시 실행하면 됩니다.

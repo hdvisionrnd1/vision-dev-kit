@@ -12,8 +12,9 @@
        Windows Terminal, 7-Zip if needed), upgrades a too-old Node.js and updates an existing Claude Code
     2. Downloads (or updates) this repository to %USERPROFILE%\vision-dev-kit
     3. Runs scripts\setup.ps1 (ast-grep, csharp-ls, ilspycmd, Cognex help, OMC check)
-    4. Registers the plugin marketplaces, installs/updates the vision-dev plugin and sets up the
-       claude-hud status bar (skip with VISION_DEV_NO_HUD=1)
+    4. Registers the plugin marketplaces, installs/updates the vision-dev plugin, sets up the
+       claude-hud status bar (skip with VISION_DEV_NO_HUD=1) and REA, the reverse engineering
+       MCP server + skill (skip with VISION_DEV_NO_REA=1)
     5. Opens the Claude login page in the browser if this PC is not logged in yet
     6. Verifies the result and writes a log to %USERPROFILE%\vision-dev-install.log
 
@@ -24,6 +25,8 @@
 
   Environment variables:
     VISION_DEV_NO_HUD=1      do not set up the claude-hud status bar
+    VISION_DEV_NO_REA=1      do not set up REA (reverse engineering MCP server + skill)
+    VISION_DEV_NO_GHIDRA=1   set up REA without Ghidra + JDK 21 (about 1 GB, used for native decompiling)
     VISION_DEV_KEEP_OMC=1    leave oh-my-claudecode enabled
     VISION_DEV_SKIP_LOGIN=1  do not open the login page (testing with a throw-away CLAUDE_CONFIG_DIR)
 #>
@@ -60,6 +63,7 @@ function Invoke-VisionDevInstall {
     $PluginId = "vision-dev@vision-dev-kit"
     $HudMarketplace = "jarrodwatts/claude-hud"
     $HudPluginId = "claude-hud@claude-hud"
+    $ReaPackage = "rea-agents@6.5.0"
     $RequiredPlugins = @("vision-dev@vision-dev-kit", "superpowers@claude-plugins-official", "csharp-lsp@claude-plugins-official")
 
     if ([string]::IsNullOrEmpty($InstallDir)) {
@@ -282,6 +286,76 @@ function Invoke-VisionDevInstall {
         else {
             Write-Warn "status bar: claude-hud does not print anything"
             $problems.Add("HUD: claude-hud does not start (see the log)")
+        }
+    }
+
+    # REA (github.com/morluto/rea, MIT): reverse engineering MCP server + 'reverse-engineer-anything' skill.
+    # Its own setup registers the server in %USERPROFILE%\.claude.json and installs the skill.
+    # Native decompiling uses Ghidra (Install-Ghidra below); .NET DLL inspection works without it.
+    function Get-ReaState {
+        $raw = (& npx -y $ReaPackage doctor --client claude_code --json 2>$null) -join "`n"
+        $state = @{ Registration = "unknown"; Skill = "unknown" }
+        try {
+            $d = ConvertFrom-Json $raw
+            foreach ($r in $d.identity.registrations) {
+                if ($r.client -eq "claude_code") {
+                    $state.Registration = "$($r.state)"
+                }
+            }
+            $state.Skill = "$($d.identity.skill.state)"
+        }
+        catch {
+            # npx failed or printed something else
+        }
+        return $state
+    }
+
+    # The REA server finds Ghidra through the user environment variables (GHIDRA_INSTALL_DIR, JAVA_HOME)
+    # that Claude Code passes on, so a registration made before Ghidra was installed still works.
+    function Test-ReaReady($state) {
+        return (($state.Registration -eq "aligned") -and ($state.Skill -eq "aligned"))
+    }
+
+    # Ghidra + JDK 21 for REA native decompiling (scripts\install-ghidra.ps1, about 1 GB on disk)
+    function Install-Ghidra {
+        if ($env:VISION_DEV_NO_GHIDRA -eq "1") {
+            Write-Host "    Ghidra: skipped (VISION_DEV_NO_GHIDRA=1)"
+            return
+        }
+        Write-Host "    Ghidra (for REA native decompiling):"
+        # Same process: the script also sets $env:GHIDRA_INSTALL_DIR / $env:JAVA_HOME for REA setup below
+        & (Join-Path $InstallDir "scripts\install-ghidra.ps1") | Out-Host
+        if ($LASTEXITCODE -eq 0) {
+            Write-Ok "Ghidra: $env:GHIDRA_INSTALL_DIR"
+        }
+        else {
+            Write-Warn "Ghidra: not ready (REA still works for .NET DLLs)"
+            $problems.Add("Ghidra: run 'powershell -ExecutionPolicy Bypass -File $InstallDir\scripts\install-ghidra.ps1' (see the log)")
+        }
+    }
+
+    function Install-Rea {
+        # REA always writes to %USERPROFILE%\.claude.json, not to CLAUDE_CONFIG_DIR. Do not touch the real
+        # configuration (or the user environment variables Ghidra needs) while testing the installer
+        # with a throw-away CLAUDE_CONFIG_DIR.
+        $defaultCfg = Join-Path $env:USERPROFILE ".claude"
+        if ((-not [string]::IsNullOrEmpty($env:CLAUDE_CONFIG_DIR)) -and ($env:CLAUDE_CONFIG_DIR.TrimEnd('\') -ne $defaultCfg)) {
+            Write-Warn "REA/Ghidra: skipped (CLAUDE_CONFIG_DIR is set; REA setup writes to $env:USERPROFILE\.claude.json)"
+            return
+        }
+        Install-Ghidra
+        if (Test-ReaReady (Get-ReaState)) {
+            Write-Ok "REA: already set up ($ReaPackage)"
+            return
+        }
+        Write-Host "    REA: registering the MCP server and skill ($ReaPackage) ..."
+        & npx -y $ReaPackage setup --client claude_code --yes 2>&1 | ForEach-Object { "           $_" } | Out-Host
+        if (Test-ReaReady (Get-ReaState)) {
+            Write-Ok "REA: set up ($ReaPackage)"
+        }
+        else {
+            Write-Warn "REA: setup did not finish"
+            $problems.Add("REA: run 'npx -y $ReaPackage setup --client claude_code --yes' (see the log)")
         }
     }
 
@@ -568,6 +642,13 @@ function Invoke-VisionDevInstall {
         else {
             Install-ClaudeHud
         }
+
+        if ($env:VISION_DEV_NO_REA -eq "1") {
+            Write-Host "    REA: skipped (VISION_DEV_NO_REA=1)"
+        }
+        else {
+            Install-Rea
+        }
     }
 
     # ------------------------------------------------------------------
@@ -655,6 +736,28 @@ function Invoke-VisionDevInstall {
     elseif ($CheckOnly -and ($env:VISION_DEV_NO_HUD -ne "1")) {
         if ([string]::IsNullOrEmpty($statusLine) -or ($statusLine -match 'omc-hud')) {
             Write-Warn "status bar: claude-hud is not set up yet (would install)"
+        }
+    }
+
+    if ($env:VISION_DEV_NO_REA -ne "1") {
+        $rea = Get-ReaState
+        if (Test-ReaReady $rea) {
+            Write-Ok "REA ($ReaPackage) MCP server + skill"
+        }
+        else {
+            Write-Warn "REA: MCP registration '$($rea.Registration)', skill '$($rea.Skill)'"
+        }
+        if ($env:VISION_DEV_NO_GHIDRA -ne "1") {
+            $gh = [Environment]::GetEnvironmentVariable("GHIDRA_INSTALL_DIR", "User")
+            if ([string]::IsNullOrEmpty($gh)) {
+                $gh = [Environment]::GetEnvironmentVariable("GHIDRA_INSTALL_DIR", "Machine")
+            }
+            if ((-not [string]::IsNullOrEmpty($gh)) -and (Test-Path (Join-Path $gh "Ghidra\application.properties"))) {
+                Write-Ok "Ghidra (for REA): $gh"
+            }
+            else {
+                Write-Warn "Ghidra is not installed (REA native decompiling unavailable)"
+            }
         }
     }
 

@@ -128,7 +128,7 @@ function Resolve-OmcConflict {
     Write-Host "      OMC conflicts with Superpowers (installed with vision-dev), so it is turned off automatically:"
     Write-Host "        - the OMC plugin is disabled (not uninstalled)"
     Write-Host "        - the OMC block is moved out of CLAUDE.md (backup kept)"
-    Write-Host "        - the OMC status bar (HUD) is NOT touched and keeps working"
+    Write-Host "        - the status bar (HUD) is not changed here (install.ps1 switches an OMC HUD to claude-hud next)"
 
     foreach ($id in $enabledIds) {
         if (Test-Cmd claude) {
@@ -158,7 +158,7 @@ function Resolve-OmcConflict {
         $usesHud = (Get-Content $settingsPath -Raw) -match 'omc-hud'
     }
     if ($usesHud) {
-        Write-Host "      status bar (OMC HUD): kept as is"
+        Write-Host "      status bar (OMC HUD): not changed here. install.ps1 replaces it with claude-hud; with a manual install it keeps working as is"
     }
 
     Write-Host "      done. To undo later:" -ForegroundColor Green

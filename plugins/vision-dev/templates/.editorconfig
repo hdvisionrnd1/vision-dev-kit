@@ -1,0 +1,15 @@
+# vision-dev 팀 C# 스타일
+# 솔루션(.sln) 폴더에 두면 Visual Studio가 그 아래 모든 .cs 파일에 적용합니다.
+# 이미 .editorconfig가 있으면 아래 [*.cs] 부분만 그 파일에 붙여 넣으세요.
+# root = true 를 넣지 않아 상위 폴더(저장소 루트)의 .editorconfig 설정도 그대로 이어받습니다.
+
+[*.cs]
+# 중괄호 없는 if/else 금지 (IDE0011). for/foreach/while 같은 반복문에도 적용됩니다.
+csharp_prefer_braces = true:warning
+dotnet_diagnostic.IDE0011.severity = warning
+
+# Visual Studio가 if/else를 삼항연산자로 바꾸자고 제안하지 않게 함 (IDE0045, IDE0046)
+dotnet_style_prefer_conditional_expression_over_assignment = false
+dotnet_style_prefer_conditional_expression_over_return = false
+dotnet_diagnostic.IDE0045.severity = none
+dotnet_diagnostic.IDE0046.severity = none

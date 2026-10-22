@@ -1,9 +1,13 @@
+# $BODY: 중괄호 없는 본문, $ALT: 삼항의 ':' 뒤 식. check.mjs가 위반 위치(줄 범위)를 정할 때 씀
 id: no-ternary
 language: csharp
 severity: error
 message: 삼항연산자(? :) 금지 — 블록 형태 if/else로 작성
 rule:
   kind: conditional_expression
+  has:
+    field: alternative
+    pattern: $ALT
 ---
 id: no-braceless-if
 language: csharp
@@ -13,6 +17,7 @@ rule:
   kind: if_statement
   has:
     field: consequence
+    pattern: $BODY
     not:
       kind: block
 ---
@@ -24,6 +29,7 @@ rule:
   kind: if_statement
   has:
     field: alternative
+    pattern: $BODY
     not:
       any:
         - kind: block
